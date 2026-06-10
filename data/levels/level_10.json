@@ -1,0 +1,101 @@
+{
+  "id": "level_10",
+  "name": "NEXUS PRIME Core",
+  "subtitle": "The Last Frontier",
+  "music_track": "audio/music/level_10_nexus_final.ogg",
+  "tilemap_file": "tilemaps/level_10.tmx",
+  "background_color": "#000000",
+  "background_layers": [
+    { "image": "assets/backgrounds/nexus_core_far.png", "parallax": 0.1 },
+    { "image": "assets/backgrounds/nexus_core_mid.png", "parallax": 0.4 },
+    { "image": "assets/backgrounds/nexus_core_near.png", "parallax": 0.8 }
+  ],
+  "gravity": 980,
+  "environment_effects": [
+    { "type": "energy_surge", "damage": 0, "visual_only": true, "intensity": 1.0 },
+    { "type": "nexus_interference", "ability_cost_multiplier": 1.2 }
+  ],
+  "width_tiles": 320,
+  "height_tiles": 32,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 960, "default": true }
+  ],
+  "enemies": [
+    { "type": "turret", "x": 600, "y": 928, "direction": "right" },
+    { "type": "shield_trooper", "x": 1200, "y": 960, "patrol_start": 1100, "patrol_end": 1300, "facing": "right" },
+    { "type": "flying_drone", "x": 1800, "y": 550, "patrol_start": 1600, "patrol_end": 2000 },
+    { "type": "stealth_assassin", "x": 2500, "y": 960, "patrol_start": 2400, "patrol_end": 2700, "facing": "left" },
+    { "type": "turret", "x": 3200, "y": 928, "direction": "left" },
+    { "type": "shield_trooper", "x": 3900, "y": 960, "patrol_start": 3800, "patrol_end": 4000, "facing": "right" },
+    { "type": "flying_drone", "x": 4600, "y": 500, "patrol_start": 4400, "patrol_end": 4800 },
+    { "type": "stealth_assassin", "x": 5300, "y": 960, "patrol_start": 5200, "patrol_end": 5500, "facing": "right" },
+    { "type": "turret", "x": 6000, "y": 928, "direction": "left" },
+    { "type": "shield_trooper", "x": 6700, "y": 960, "patrol_start": 6600, "patrol_end": 6800, "facing": "left" },
+    { "type": "flying_drone", "x": 7400, "y": 480, "patrol_start": 7200, "patrol_end": 7600 },
+    { "type": "stealth_assassin", "x": 8100, "y": 960, "patrol_start": 8000, "patrol_end": 8300, "facing": "right" }
+  ],
+  "bosses": [
+    { "id": "nexus_prime", "x": 9200, "y": 850, "trigger_distance": 400 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 2000, "y": 930 },
+    { "id": "cp_02", "x": 4500, "y": 930 },
+    { "id": "cp_03", "x": 7000, "y": 930 },
+    { "id": "cp_04", "x": 8800, "y": 930 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_10_nexus_vault",
+      "type": "hidden_room",
+      "x": 4200,
+      "y": 700,
+      "trigger": "all_nexus_fragments",
+      "required_items": [
+        { "item": "nexus_core_fragment", "count": 2 }
+      ],
+      "contents": [
+        { "item": "health_pack_medium", "count": 3 },
+        { "item": "energy_cell_medium", "count": 3 },
+        { "item": "void_shard", "count": 10 }
+      ]
+    },
+    {
+      "id": "secret_10_final_log",
+      "type": "lore_log",
+      "x": 7500,
+      "y": 930,
+      "log_file": "lore/log_10_omega.json",
+      "triggers_cutscene": "cutscenes/nexus_truth_revealed.json"
+    }
+  ],
+  "hazards": [
+    { "type": "laser_grid", "x": 1500, "y": 860, "width": 256, "height": 100, "damage": 40, "toggle_interval": 1.8 },
+    { "type": "electric_floor", "x": 3500, "y": 960, "width": 320, "damage_per_second": 30, "toggle_interval": 2.5 },
+    { "type": "laser_grid", "x": 5700, "y": 860, "width": 192, "height": 100, "damage": 40, "toggle_interval": 1.5 },
+    { "type": "nexus_mine", "x": 6500, "y": 950, "damage": 70, "radius": 100, "proximity_trigger": true },
+    { "type": "collapsing_platform", "x": 7800, "y": 900, "width": 128, "collapse_time": 1.0 },
+    { "type": "nexus_mine", "x": 8500, "y": 950, "damage": 70, "radius": 100, "proximity_trigger": true }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Storm the NEXUS PRIME core and destroy the machine god once and for all.",
+    "exit_x": 10000,
+    "exit_y": 870,
+    "is_final_level": true,
+    "secondary_objectives": [
+      { "id": "no_deaths", "description": "Complete the final gauntlet without dying.", "reward_credits": 9999 },
+      { "id": "speed_run", "description": "Reach NEXUS PRIME in under 10 minutes.", "reward_credits": 5000 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 960, "dialogue_file": "dialogue/level_10_intro.json", "once": true },
+    { "x": 5000, "y": 930, "dialogue_file": "dialogue/level_10_midpoint.json", "once": true },
+    { "x": 8900, "y": 930, "dialogue_file": "dialogue/level_10_boss_intro.json", "once": true }
+  ],
+  "on_complete": {
+    "triggers_ending": true,
+    "ending_cutscene": "cutscenes/ending_galaxy_reborn.json",
+    "unlocks": ["new_game_plus", "character_cy_x7_true", "character_zhyra_true"]
+  }
+}

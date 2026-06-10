@@ -1,0 +1,87 @@
+{
+  "id": "level_09",
+  "name": "The Void Rift",
+  "subtitle": "Beyond the Edge",
+  "music_track": "audio/music/level_09_voidrift.ogg",
+  "tilemap_file": "tilemaps/level_09.tmx",
+  "background_color": "#000000",
+  "background_layers": [
+    { "image": "assets/backgrounds/void_far.png", "parallax": 0.05 },
+    { "image": "assets/backgrounds/void_mid.png", "parallax": 0.35 },
+    { "image": "assets/backgrounds/void_near.png", "parallax": 0.7 }
+  ],
+  "gravity": 500,
+  "environment_effects": [
+    { "type": "gravity_anomalies", "zones": 5, "force_variance": 200 },
+    { "type": "void_particles", "density": 0.8 },
+    { "type": "reality_distortion", "intensity": 0.5 }
+  ],
+  "width_tiles": 300,
+  "height_tiles": 35,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 900, "default": true }
+  ],
+  "enemies": [
+    { "type": "stealth_assassin", "x": 600, "y": 900, "patrol_start": 500, "patrol_end": 700, "facing": "right" },
+    { "type": "flying_drone", "x": 1200, "y": 500, "patrol_start": 1000, "patrol_end": 1400 },
+    { "type": "flying_drone", "x": 1800, "y": 350, "patrol_start": 1600, "patrol_end": 2000 },
+    { "type": "stealth_assassin", "x": 2400, "y": 900, "patrol_start": 2300, "patrol_end": 2600, "facing": "left" },
+    { "type": "turret", "x": 3000, "y": 868, "direction": "left" },
+    { "type": "flying_drone", "x": 3600, "y": 400, "patrol_start": 3400, "patrol_end": 3800 },
+    { "type": "shield_trooper", "x": 4200, "y": 900, "patrol_start": 4100, "patrol_end": 4300, "facing": "right" },
+    { "type": "stealth_assassin", "x": 4800, "y": 900, "patrol_start": 4700, "patrol_end": 5000, "facing": "left" },
+    { "type": "turret", "x": 5400, "y": 868, "direction": "left" },
+    { "type": "flying_drone", "x": 6000, "y": 450, "patrol_start": 5800, "patrol_end": 6200 }
+  ],
+  "bosses": [
+    { "id": "void_harbinger", "x": 7000, "y": 800, "trigger_distance": 350 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 2000, "y": 870 },
+    { "id": "cp_02", "x": 4000, "y": 870 },
+    { "id": "cp_03", "x": 6000, "y": 870 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_09_void_shrine",
+      "type": "hidden_room",
+      "x": 3300,
+      "y": 600,
+      "trigger": "void_shard_offering",
+      "shard_cost": 3,
+      "contents": [
+        { "item": "pulse_cannon", "count": 1 },
+        { "item": "nexus_core_fragment", "count": 1 }
+      ]
+    },
+    {
+      "id": "secret_09_log",
+      "type": "lore_log",
+      "x": 5700,
+      "y": 870,
+      "log_file": "lore/log_09_iota.json"
+    }
+  ],
+  "hazards": [
+    { "type": "void_rift_portal", "x": 1500, "y": 800, "teleports_to": { "x": 2300, "y": 600 }, "bidirectional": true },
+    { "type": "gravity_flip_zone", "x": 2800, "y": 700, "width": 256, "height": 200, "flips_gravity": true },
+    { "type": "void_spikes", "x": 4500, "y": 910, "width": 128, "damage": 999 },
+    { "type": "collapsing_platform", "x": 5800, "y": 840, "width": 160, "collapse_time": 1.5 },
+    { "type": "gravity_flip_zone", "x": 6400, "y": 700, "width": 224, "height": 200, "flips_gravity": true }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Cross the Void Rift and destroy the Void Harbinger before it collapses reality.",
+    "exit_x": 7700,
+    "exit_y": 820,
+    "secondary_objectives": [
+      { "id": "close_rifts", "description": "Seal all void rifts in the zone.", "reward_credits": 500 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 900, "dialogue_file": "dialogue/level_09_intro.json", "once": true },
+    { "x": 6700, "y": 850, "dialogue_file": "dialogue/level_09_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_10"
+}
