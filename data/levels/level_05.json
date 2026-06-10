@@ -1,0 +1,82 @@
+{
+  "id": "level_05",
+  "name": "Stormwall Citadel",
+  "subtitle": "Eyes of the Storm",
+  "music_track": "audio/music/level_05_stormwall.ogg",
+  "tilemap_file": "tilemaps/level_05.tmx",
+  "background_color": "#1a1a0d",
+  "background_layers": [
+    { "image": "assets/backgrounds/storm_far.png", "parallax": 0.1 },
+    { "image": "assets/backgrounds/storm_mid.png", "parallax": 0.4 },
+    { "image": "assets/backgrounds/storm_near.png", "parallax": 0.75 }
+  ],
+  "gravity": 960,
+  "environment_effects": [
+    { "type": "storm_wind", "force": 50, "direction": "right", "gusts": true, "gust_interval": 5.0, "gust_force": 120 }
+  ],
+  "width_tiles": 240,
+  "height_tiles": 28,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 720, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 500, "y": 720, "patrol_start": 400, "patrol_end": 600, "facing": "right" },
+    { "type": "flying_drone", "x": 1000, "y": 400, "patrol_start": 800, "patrol_end": 1200 },
+    { "type": "shield_trooper", "x": 1500, "y": 720, "patrol_start": 1400, "patrol_end": 1600, "facing": "left" },
+    { "type": "turret", "x": 2000, "y": 688, "direction": "left" },
+    { "type": "stealth_assassin", "x": 2500, "y": 720, "patrol_start": 2400, "patrol_end": 2700, "facing": "right" },
+    { "type": "flying_drone", "x": 3000, "y": 350, "patrol_start": 2800, "patrol_end": 3200 },
+    { "type": "flying_drone", "x": 3500, "y": 300, "patrol_start": 3300, "patrol_end": 3700 },
+    { "type": "grunt", "x": 4000, "y": 560, "patrol_start": 3900, "patrol_end": 4100, "facing": "right" },
+    { "type": "shield_trooper", "x": 4500, "y": 720, "patrol_start": 4400, "patrol_end": 4600, "facing": "left" },
+    { "type": "turret", "x": 5000, "y": 688, "direction": "left" }
+  ],
+  "bosses": [
+    { "id": "storm_valkyrie", "x": 5700, "y": 600, "trigger_distance": 320 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1400, "y": 690 },
+    { "id": "cp_02", "x": 3100, "y": 690 },
+    { "id": "cp_03", "x": 4800, "y": 690 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_05_sky_cache",
+      "type": "hidden_platform",
+      "x": 2200,
+      "y": 200,
+      "trigger": "reach_altitude",
+      "contents": [
+        { "item": "double_jump_module", "count": 1 }
+      ]
+    },
+    {
+      "id": "secret_05_log",
+      "type": "lore_log",
+      "x": 4000,
+      "y": 530,
+      "log_file": "lore/log_05_epsilon.json"
+    }
+  ],
+  "hazards": [
+    { "type": "lightning_strike", "x": 1200, "y": 0, "damage": 50, "interval": 6.0, "warning_time": 1.5 },
+    { "type": "lightning_strike", "x": 2800, "y": 0, "damage": 50, "interval": 5.0, "warning_time": 1.5 },
+    { "type": "wind_tunnel", "x": 1800, "y": 600, "width": 192, "force_y": -400 },
+    { "type": "gap", "x": 3800, "y": 732, "width": 160 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Scale Stormwall Citadel and defeat the Storm Valkyrie commander.",
+    "exit_x": 6300,
+    "exit_y": 650,
+    "secondary_objectives": [
+      { "id": "survive_storm", "description": "Complete the level without being hit by lightning.", "reward_credits": 200 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 720, "dialogue_file": "dialogue/level_05_intro.json", "once": true },
+    { "x": 5400, "y": 640, "dialogue_file": "dialogue/level_05_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_06"
+}

@@ -1,0 +1,968 @@
+{
+  "bosses": {
+    "titan_x_drone": {
+      "id": "titan_x_drone",
+      "name": "Titan-X Drone",
+      "level": 1,
+      "description": "A massive automated war machine. The first true test of the rebellion's resolve.",
+      "hp": 800,
+      "max_hp": 800,
+      "defense": 18,
+      "experience_reward": 500,
+      "credit_reward": 250,
+      "phase_count": 2,
+      "phase_thresholds": [0.5],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 80,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Gatling Barrage",
+              "type": "ranged",
+              "damage": 12,
+              "range": 500,
+              "cooldown": 0.2,
+              "burst_count": 20,
+              "projectile_speed": 700
+            },
+            {
+              "name": "Ground Slam",
+              "type": "melee_aoe",
+              "damage": 40,
+              "range": 200,
+              "aoe_radius": 180,
+              "cooldown": 4.0,
+              "knockback": 500
+            },
+            {
+              "name": "Rocket Volley",
+              "type": "ranged",
+              "damage": 60,
+              "range": 700,
+              "cooldown": 8.0,
+              "projectile_count": 3,
+              "homing": false
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.5,
+          "speed": 120,
+          "damage_multiplier": 1.4,
+          "enrage_effect": "activates_shield",
+          "new_attacks": [
+            {
+              "name": "Laser Sweep",
+              "type": "beam",
+              "damage": 25,
+              "range": 600,
+              "duration": 2.0,
+              "cooldown": 6.0,
+              "sweep_angle": 180
+            },
+            {
+              "name": "Self-Repair",
+              "type": "heal",
+              "heal_amount": 50,
+              "cooldown": 20.0
+            }
+          ]
+        }
+      },
+      "arena": "level_01_boss_arena",
+      "music_track": "audio/music/boss_titan.ogg",
+      "sprite": "assets/sprites/bosses/titan_x_drone.png",
+      "death_cutscene": "cutscenes/titan_death.json"
+    },
+    "scorpion_mecha": {
+      "id": "scorpion_mecha",
+      "name": "Scorpion Mecha",
+      "level": 2,
+      "description": "A multi-legged combat walker with a devastating tail cannon and claw attacks.",
+      "hp": 1100,
+      "max_hp": 1100,
+      "defense": 22,
+      "experience_reward": 750,
+      "credit_reward": 400,
+      "phase_count": 2,
+      "phase_thresholds": [0.45],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 140,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Claw Swipe",
+              "type": "melee",
+              "damage": 35,
+              "range": 110,
+              "cooldown": 0.9,
+              "knockback": 300
+            },
+            {
+              "name": "Tail Cannon",
+              "type": "ranged",
+              "damage": 55,
+              "range": 600,
+              "projectile_speed": 550,
+              "cooldown": 3.5
+            },
+            {
+              "name": "Leg Stomp",
+              "type": "melee_aoe",
+              "damage": 30,
+              "aoe_radius": 120,
+              "cooldown": 5.0,
+              "creates_shockwave": true,
+              "shockwave_range": 300
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.45,
+          "speed": 190,
+          "damage_multiplier": 1.5,
+          "enrage_effect": "detaches_tail_as_projectile",
+          "new_attacks": [
+            {
+              "name": "Venom Spray",
+              "type": "aoe",
+              "damage": 18,
+              "damage_per_second": 8,
+              "poison_duration": 5.0,
+              "aoe_radius": 160,
+              "cooldown": 4.0
+            },
+            {
+              "name": "Charge",
+              "type": "dash_attack",
+              "damage": 70,
+              "cooldown": 7.0,
+              "charge_distance": 500,
+              "knockback": 700
+            }
+          ]
+        }
+      },
+      "arena": "level_02_boss_arena",
+      "music_track": "audio/music/boss_scorpion.ogg",
+      "sprite": "assets/sprites/bosses/scorpion_mecha.png",
+      "death_cutscene": "cutscenes/scorpion_death.json"
+    },
+    "cryo_sentinel": {
+      "id": "cryo_sentinel",
+      "name": "Cryo Sentinel",
+      "level": 3,
+      "description": "A guardian unit stationed in the frozen tundra research facility. Uses ice and freeze mechanics.",
+      "hp": 1350,
+      "max_hp": 1350,
+      "defense": 20,
+      "experience_reward": 1000,
+      "credit_reward": 550,
+      "phase_count": 3,
+      "phase_thresholds": [0.65, 0.3],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 100,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Cryo Beam",
+              "type": "beam",
+              "damage": 20,
+              "range": 450,
+              "duration": 1.5,
+              "cooldown": 4.0,
+              "freeze_chance": 0.3,
+              "slow_factor": 0.5
+            },
+            {
+              "name": "Ice Spike",
+              "type": "projectile",
+              "damage": 40,
+              "range": 500,
+              "projectile_speed": 400,
+              "cooldown": 2.5,
+              "pierces": false
+            },
+            {
+              "name": "Frost Nova",
+              "type": "aoe",
+              "damage": 25,
+              "aoe_radius": 200,
+              "cooldown": 7.0,
+              "freeze_duration": 2.5
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.65,
+          "speed": 130,
+          "damage_multiplier": 1.3,
+          "arena_effect": "icy_floor_slow",
+          "new_attacks": [
+            {
+              "name": "Blizzard",
+              "type": "summon_hazard",
+              "damage": 10,
+              "damage_per_second": 10,
+              "duration": 6.0,
+              "cooldown": 12.0,
+              "covers_arena": true
+            },
+            {
+              "name": "Ice Clone",
+              "type": "summon",
+              "summon_id": "cryo_clone",
+              "count": 2,
+              "cooldown": 15.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.3,
+          "speed": 160,
+          "damage_multiplier": 1.7,
+          "enrage_effect": "permanent_blizzard",
+          "new_attacks": [
+            {
+              "name": "Absolute Zero",
+              "type": "aoe",
+              "damage": 80,
+              "aoe_radius": 350,
+              "cooldown": 20.0,
+              "freeze_duration": 4.0,
+              "channel_time": 2.0
+            }
+          ]
+        }
+      },
+      "arena": "level_03_boss_arena",
+      "music_track": "audio/music/boss_cryo.ogg",
+      "sprite": "assets/sprites/bosses/cryo_sentinel.png",
+      "death_cutscene": "cutscenes/cryo_death.json"
+    },
+    "mutant_bio_core": {
+      "id": "mutant_bio_core",
+      "name": "Mutant Bio-Core",
+      "level": 4,
+      "description": "A failed genetic experiment that has grown beyond control. Regenerates HP and spawns minions.",
+      "hp": 1600,
+      "max_hp": 1600,
+      "defense": 14,
+      "hp_regen": 8,
+      "experience_reward": 1300,
+      "credit_reward": 700,
+      "phase_count": 3,
+      "phase_thresholds": [0.7, 0.35],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 90,
+          "damage_multiplier": 1.0,
+          "hp_regen": 8,
+          "attacks": [
+            {
+              "name": "Acid Spit",
+              "type": "projectile",
+              "damage": 22,
+              "damage_per_second": 6,
+              "acid_duration": 4.0,
+              "range": 400,
+              "projectile_speed": 350,
+              "cooldown": 1.8
+            },
+            {
+              "name": "Tentacle Slam",
+              "type": "melee",
+              "damage": 45,
+              "range": 180,
+              "cooldown": 2.0,
+              "knockback": 400
+            },
+            {
+              "name": "Spawn Minion",
+              "type": "summon",
+              "summon_id": "bio_larva",
+              "count": 3,
+              "cooldown": 10.0
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.7,
+          "speed": 110,
+          "damage_multiplier": 1.3,
+          "hp_regen": 15,
+          "new_attacks": [
+            {
+              "name": "Toxic Cloud",
+              "type": "aoe_hazard",
+              "damage_per_second": 12,
+              "radius": 250,
+              "duration": 8.0,
+              "cooldown": 14.0
+            },
+            {
+              "name": "Mutation Surge",
+              "type": "self_buff",
+              "attack_multiplier": 1.5,
+              "duration": 6.0,
+              "cooldown": 18.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.35,
+          "speed": 130,
+          "damage_multiplier": 1.8,
+          "hp_regen": 25,
+          "new_attacks": [
+            {
+              "name": "Bio Explosion",
+              "type": "aoe",
+              "damage": 90,
+              "aoe_radius": 300,
+              "cooldown": 16.0,
+              "channel_time": 3.0,
+              "destroys_minions_for_power": true
+            }
+          ]
+        }
+      },
+      "arena": "level_04_boss_arena",
+      "music_track": "audio/music/boss_bio.ogg",
+      "sprite": "assets/sprites/bosses/mutant_bio_core.png",
+      "death_cutscene": "cutscenes/bio_death.json"
+    },
+    "storm_valkyrie": {
+      "id": "storm_valkyrie",
+      "name": "Storm Valkyrie",
+      "level": 5,
+      "description": "A cybernetically enhanced supersoldier who commands lightning and wind. Highly mobile aerial boss.",
+      "hp": 1900,
+      "max_hp": 1900,
+      "defense": 25,
+      "experience_reward": 1700,
+      "credit_reward": 950,
+      "phase_count": 3,
+      "phase_thresholds": [0.6, 0.25],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 300,
+          "flies": true,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Thunder Lance",
+              "type": "projectile",
+              "damage": 50,
+              "range": 600,
+              "projectile_speed": 900,
+              "cooldown": 2.0,
+              "chain_lightning_chance": 0.4,
+              "chain_targets": 2
+            },
+            {
+              "name": "Wind Slash",
+              "type": "ranged",
+              "damage": 30,
+              "range": 400,
+              "projectile_speed": 700,
+              "cooldown": 1.0,
+              "pierces": true
+            },
+            {
+              "name": "Dive Bomb",
+              "type": "dash_attack",
+              "damage": 65,
+              "aoe_radius": 120,
+              "cooldown": 5.0,
+              "shockwave": true
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.6,
+          "speed": 380,
+          "damage_multiplier": 1.4,
+          "new_attacks": [
+            {
+              "name": "Storm Call",
+              "type": "summon_hazard",
+              "damage_per_second": 15,
+              "duration": 8.0,
+              "cooldown": 16.0,
+              "lightning_strike_interval": 1.5,
+              "lightning_damage": 35
+            },
+            {
+              "name": "Cyclone Dash",
+              "type": "dash_aoe",
+              "damage": 40,
+              "aoe_radius": 150,
+              "dash_count": 3,
+              "cooldown": 8.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.25,
+          "speed": 450,
+          "damage_multiplier": 2.0,
+          "enrage_effect": "permanent_lightning_field",
+          "new_attacks": [
+            {
+              "name": "Maelstrom",
+              "type": "aoe",
+              "damage": 110,
+              "aoe_radius": 400,
+              "cooldown": 22.0,
+              "channel_time": 2.5,
+              "pulls_player_in": true
+            }
+          ]
+        }
+      },
+      "arena": "level_05_boss_arena",
+      "music_track": "audio/music/boss_valkyrie.ogg",
+      "sprite": "assets/sprites/bosses/storm_valkyrie.png",
+      "death_cutscene": "cutscenes/valkyrie_death.json"
+    },
+    "magma_colossus": {
+      "id": "magma_colossus",
+      "name": "Magma Colossus",
+      "level": 6,
+      "description": "An ancient war golem reactivated by volcanic heat. Slow but nearly unstoppable. Creates lava hazards.",
+      "hp": 2400,
+      "max_hp": 2400,
+      "defense": 35,
+      "experience_reward": 2200,
+      "credit_reward": 1200,
+      "phase_count": 3,
+      "phase_thresholds": [0.55, 0.2],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 60,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Lava Fist",
+              "type": "melee",
+              "damage": 70,
+              "range": 150,
+              "cooldown": 1.5,
+              "knockback": 600,
+              "burns_ground": true,
+              "burn_duration": 5.0
+            },
+            {
+              "name": "Magma Ball",
+              "type": "projectile",
+              "damage": 55,
+              "range": 500,
+              "projectile_speed": 280,
+              "cooldown": 3.0,
+              "explodes_on_impact": true,
+              "explosion_radius": 100
+            },
+            {
+              "name": "Eruption",
+              "type": "aoe",
+              "damage": 80,
+              "aoe_radius": 250,
+              "cooldown": 10.0,
+              "creates_lava_pool": true,
+              "lava_duration": 10.0
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.55,
+          "speed": 80,
+          "damage_multiplier": 1.35,
+          "body_damage": 15,
+          "new_attacks": [
+            {
+              "name": "Lava Geyser",
+              "type": "ground_hazard",
+              "damage": 40,
+              "geyser_count": 5,
+              "cooldown": 12.0,
+              "warning_time": 1.0
+            },
+            {
+              "name": "Molten Armor",
+              "type": "self_buff",
+              "damage_reduction": 0.3,
+              "reflects_damage": 10,
+              "duration": 8.0,
+              "cooldown": 20.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.2,
+          "speed": 110,
+          "damage_multiplier": 2.2,
+          "arena_effect": "rising_lava_floor",
+          "new_attacks": [
+            {
+              "name": "Cataclysm",
+              "type": "aoe",
+              "damage": 150,
+              "aoe_radius": 600,
+              "cooldown": 30.0,
+              "channel_time": 4.0,
+              "screen_shake_intensity": 10
+            }
+          ]
+        }
+      },
+      "arena": "level_06_boss_arena",
+      "music_track": "audio/music/boss_magma.ogg",
+      "sprite": "assets/sprites/bosses/magma_colossus.png",
+      "death_cutscene": "cutscenes/magma_death.json"
+    },
+    "neuro_beast": {
+      "id": "neuro_beast",
+      "name": "Neuro Beast",
+      "level": 7,
+      "description": "A cybernetic creature that hacks electronic systems and controls weaker enemies via neural link.",
+      "hp": 2100,
+      "max_hp": 2100,
+      "defense": 22,
+      "experience_reward": 2600,
+      "credit_reward": 1500,
+      "phase_count": 3,
+      "phase_thresholds": [0.6, 0.3],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 170,
+          "damage_multiplier": 1.0,
+          "attacks": [
+            {
+              "name": "Neural Spike",
+              "type": "projectile",
+              "damage": 35,
+              "range": 400,
+              "projectile_speed": 600,
+              "cooldown": 1.2,
+              "applies_confusion": true,
+              "confusion_duration": 2.0
+            },
+            {
+              "name": "Mind Crush",
+              "type": "ranged",
+              "damage": 55,
+              "range": 350,
+              "cooldown": 3.0,
+              "drains_energy": 30
+            },
+            {
+              "name": "Hack Turret",
+              "type": "hack",
+              "cooldown": 15.0,
+              "range": 300,
+              "hacks_enemy_type": "turret",
+              "hacked_duration": 20.0
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.6,
+          "speed": 210,
+          "damage_multiplier": 1.4,
+          "new_attacks": [
+            {
+              "name": "Control Wave",
+              "type": "aoe",
+              "damage": 20,
+              "aoe_radius": 300,
+              "cooldown": 10.0,
+              "mind_controls_enemies": true,
+              "control_duration": 8.0,
+              "max_controlled": 3
+            },
+            {
+              "name": "Synaptic Overload",
+              "type": "targeted",
+              "damage": 75,
+              "cooldown": 6.0,
+              "stun_duration": 1.5
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.3,
+          "speed": 260,
+          "damage_multiplier": 1.9,
+          "new_attacks": [
+            {
+              "name": "Neural Collapse",
+              "type": "aoe",
+              "damage": 100,
+              "aoe_radius": 350,
+              "cooldown": 18.0,
+              "inverts_controls": true,
+              "invert_duration": 4.0,
+              "channel_time": 1.5
+            }
+          ]
+        }
+      },
+      "arena": "level_07_boss_arena",
+      "music_track": "audio/music/boss_neuro.ogg",
+      "sprite": "assets/sprites/bosses/neuro_beast.png",
+      "death_cutscene": "cutscenes/neuro_death.json"
+    },
+    "moon_reaper": {
+      "id": "moon_reaper",
+      "name": "Moon Reaper",
+      "level": 8,
+      "description": "A spectral assassin born from the dark side of the moon. Phases in and out of reality, nearly untouchable.",
+      "hp": 2800,
+      "max_hp": 2800,
+      "defense": 18,
+      "experience_reward": 3200,
+      "credit_reward": 1900,
+      "phase_count": 3,
+      "phase_thresholds": [0.65, 0.3],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 250,
+          "damage_multiplier": 1.0,
+          "invulnerable_when_phased": true,
+          "phase_frequency": 5.0,
+          "phase_duration": 2.0,
+          "attacks": [
+            {
+              "name": "Death Scythe",
+              "type": "melee",
+              "damage": 60,
+              "range": 130,
+              "cooldown": 1.0,
+              "knockback": 350,
+              "ignores_defense": 0.4
+            },
+            {
+              "name": "Soul Arrow",
+              "type": "projectile",
+              "damage": 45,
+              "range": 550,
+              "projectile_speed": 750,
+              "cooldown": 2.0,
+              "homing": true,
+              "homing_strength": 0.5
+            },
+            {
+              "name": "Phase Blink",
+              "type": "teleport",
+              "damage": 0,
+              "cooldown": 4.0,
+              "teleport_count": 3
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.65,
+          "speed": 310,
+          "damage_multiplier": 1.5,
+          "new_attacks": [
+            {
+              "name": "Harvest",
+              "type": "targeted_dash",
+              "damage": 90,
+              "cooldown": 5.0,
+              "dash_distance": 400,
+              "steals_hp": 30
+            },
+            {
+              "name": "Wraith Swarm",
+              "type": "summon",
+              "summon_id": "phantom_wraith",
+              "count": 4,
+              "cooldown": 12.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.3,
+          "speed": 380,
+          "damage_multiplier": 2.1,
+          "enrage_effect": "continuous_phasing",
+          "new_attacks": [
+            {
+              "name": "Eclipse",
+              "type": "aoe",
+              "damage": 120,
+              "aoe_radius": 500,
+              "cooldown": 20.0,
+              "blinds_player": true,
+              "blind_duration": 3.0,
+              "channel_time": 2.0
+            }
+          ]
+        }
+      },
+      "arena": "level_08_boss_arena",
+      "music_track": "audio/music/boss_reaper.ogg",
+      "sprite": "assets/sprites/bosses/moon_reaper.png",
+      "death_cutscene": "cutscenes/reaper_death.json"
+    },
+    "void_harbinger": {
+      "id": "void_harbinger",
+      "name": "Void Harbinger",
+      "level": 9,
+      "description": "An entity from beyond the galaxy. Manipulates gravity, space, and time. Nearly incomprehensible power.",
+      "hp": 3500,
+      "max_hp": 3500,
+      "defense": 30,
+      "experience_reward": 4500,
+      "credit_reward": 2800,
+      "phase_count": 3,
+      "phase_thresholds": [0.6, 0.25],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 200,
+          "damage_multiplier": 1.0,
+          "gravity_distortion": true,
+          "attacks": [
+            {
+              "name": "Void Bolt",
+              "type": "projectile",
+              "damage": 55,
+              "range": 600,
+              "projectile_speed": 500,
+              "cooldown": 1.5,
+              "void_shred": true,
+              "shred_amount": 5
+            },
+            {
+              "name": "Singularity Pull",
+              "type": "gravity_aoe",
+              "damage": 30,
+              "pull_radius": 300,
+              "duration": 3.0,
+              "cooldown": 8.0,
+              "damage_per_second": 30
+            },
+            {
+              "name": "Dimensional Rift",
+              "type": "projectile",
+              "damage": 80,
+              "range": 700,
+              "projectile_speed": 400,
+              "cooldown": 5.0,
+              "creates_hazard_zone": true,
+              "hazard_duration": 6.0
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.6,
+          "speed": 260,
+          "damage_multiplier": 1.6,
+          "gravity_reversal_intervals": 12.0,
+          "new_attacks": [
+            {
+              "name": "Event Horizon",
+              "type": "expanding_aoe",
+              "damage": 70,
+              "initial_radius": 50,
+              "final_radius": 350,
+              "expansion_time": 2.0,
+              "cooldown": 12.0
+            },
+            {
+              "name": "Void Clone",
+              "type": "summon",
+              "summon_id": "void_echo",
+              "count": 2,
+              "cooldown": 18.0
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.25,
+          "speed": 320,
+          "damage_multiplier": 2.4,
+          "enrage_effect": "altered_gravity_permanent",
+          "new_attacks": [
+            {
+              "name": "Oblivion",
+              "type": "arena_wide_aoe",
+              "damage": 200,
+              "cooldown": 30.0,
+              "channel_time": 5.0,
+              "safe_zones": 2,
+              "safe_zone_radius": 80
+            }
+          ]
+        }
+      },
+      "arena": "level_09_boss_arena",
+      "music_track": "audio/music/boss_void.ogg",
+      "sprite": "assets/sprites/bosses/void_harbinger.png",
+      "death_cutscene": "cutscenes/void_death.json"
+    },
+    "nexus_prime": {
+      "id": "nexus_prime",
+      "name": "NEXUS PRIME",
+      "level": 10,
+      "description": "The supreme intelligence controlling the Nexus Corporation. A god-like AI entity fused with reality itself. The final boss.",
+      "hp": 5000,
+      "max_hp": 5000,
+      "defense": 40,
+      "experience_reward": 10000,
+      "credit_reward": 9999,
+      "phase_count": 4,
+      "phase_thresholds": [0.75, 0.5, 0.2],
+      "phases": {
+        "phase_1": {
+          "threshold": 1.0,
+          "speed": 150,
+          "damage_multiplier": 1.0,
+          "description": "Nexus Prime asserts dominance. Calculated and methodical.",
+          "attacks": [
+            {
+              "name": "Precision Beam",
+              "type": "beam",
+              "damage": 60,
+              "range": 800,
+              "duration": 1.0,
+              "cooldown": 2.5,
+              "accuracy": 1.0
+            },
+            {
+              "name": "Nanite Swarm",
+              "type": "persistent_aoe",
+              "damage_per_second": 20,
+              "aoe_radius": 200,
+              "duration": 5.0,
+              "cooldown": 10.0
+            },
+            {
+              "name": "System Reboot",
+              "type": "self_heal",
+              "heal_amount": 200,
+              "cooldown": 25.0,
+              "channel_time": 3.0
+            }
+          ]
+        },
+        "phase_2": {
+          "threshold": 0.75,
+          "speed": 200,
+          "damage_multiplier": 1.4,
+          "description": "NEXUS activates combat subsystems. Arena morphs.",
+          "arena_change": "platforms_retract",
+          "new_attacks": [
+            {
+              "name": "Core Missiles",
+              "type": "multi_projectile",
+              "damage": 65,
+              "projectile_count": 6,
+              "range": 700,
+              "cooldown": 4.0,
+              "homing": true,
+              "homing_strength": 0.6
+            },
+            {
+              "name": "Data Corruption",
+              "type": "debuff",
+              "damage": 0,
+              "cooldown": 8.0,
+              "inverts_controls": true,
+              "duration": 3.0,
+              "range": 500
+            },
+            {
+              "name": "Force Turrets",
+              "type": "summon_turret",
+              "count": 3,
+              "cooldown": 20.0,
+              "turret_hp": 150
+            }
+          ]
+        },
+        "phase_3": {
+          "threshold": 0.5,
+          "speed": 270,
+          "damage_multiplier": 1.9,
+          "description": "NEXUS integrates with the facility's systems. Everywhere and nowhere.",
+          "arena_change": "walls_electrified",
+          "new_attacks": [
+            {
+              "name": "Annihilation Ray",
+              "type": "beam",
+              "damage": 120,
+              "range": 900,
+              "duration": 2.0,
+              "cooldown": 8.0,
+              "sweep": true,
+              "sweep_angle": 90
+            },
+            {
+              "name": "Gravity Collapse",
+              "type": "arena_aoe",
+              "damage": 90,
+              "cooldown": 15.0,
+              "channel_time": 2.0,
+              "crushes_player_to_center": true
+            },
+            {
+              "name": "Spawn Army",
+              "type": "summon",
+              "summon_ids": ["grunt", "flying_drone", "turret"],
+              "counts": [3, 2, 1],
+              "cooldown": 20.0
+            }
+          ]
+        },
+        "phase_4": {
+          "threshold": 0.2,
+          "speed": 350,
+          "damage_multiplier": 2.8,
+          "description": "NEXUS PRIME enters final form. Reality fractures.",
+          "arena_change": "void_corruption_overlay",
+          "enrage_effect": "all_attacks_accelerated",
+          "new_attacks": [
+            {
+              "name": "TOTAL ANNIHILATION",
+              "type": "arena_wide_aoe",
+              "damage": 300,
+              "cooldown": 35.0,
+              "channel_time": 6.0,
+              "safe_zones": 1,
+              "safe_zone_radius": 60,
+              "warning_time": 4.0
+            },
+            {
+              "name": "Recursive Overwrite",
+              "type": "targeted",
+              "damage": 150,
+              "cooldown": 6.0,
+              "bypasses_dodge": false,
+              "telegraphed": true
+            }
+          ]
+        }
+      },
+      "arena": "level_10_boss_arena",
+      "music_track": "audio/music/boss_nexus_prime.ogg",
+      "sprite": "assets/sprites/bosses/nexus_prime.png",
+      "death_cutscene": "cutscenes/nexus_death_ending.json",
+      "unlocks_ending": true
+    }
+  }
+}

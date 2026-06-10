@@ -1,0 +1,80 @@
+{
+  "id": "level_07",
+  "name": "Neural Nexus",
+  "subtitle": "Mind Games",
+  "music_track": "audio/music/level_07_neural.ogg",
+  "tilemap_file": "tilemaps/level_07.tmx",
+  "background_color": "#0d001a",
+  "background_layers": [
+    { "image": "assets/backgrounds/nexus_cyber_far.png", "parallax": 0.2 },
+    { "image": "assets/backgrounds/nexus_cyber_mid.png", "parallax": 0.55 },
+    { "image": "assets/backgrounds/nexus_cyber_near.png", "parallax": 0.85 }
+  ],
+  "gravity": 980,
+  "width_tiles": 260,
+  "height_tiles": 26,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 640, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 450, "y": 640, "patrol_start": 350, "patrol_end": 550, "facing": "right" },
+    { "type": "flying_drone", "x": 1000, "y": 350, "patrol_start": 800, "patrol_end": 1200 },
+    { "type": "stealth_assassin", "x": 1600, "y": 640, "patrol_start": 1500, "patrol_end": 1800, "facing": "right" },
+    { "type": "turret", "x": 2200, "y": 608, "direction": "left" },
+    { "type": "shield_trooper", "x": 2700, "y": 640, "patrol_start": 2600, "patrol_end": 2800, "facing": "left" },
+    { "type": "stealth_assassin", "x": 3300, "y": 640, "patrol_start": 3200, "patrol_end": 3500, "facing": "right" },
+    { "type": "flying_drone", "x": 3900, "y": 300, "patrol_start": 3700, "patrol_end": 4100 },
+    { "type": "turret", "x": 4500, "y": 608, "direction": "left" },
+    { "type": "grunt", "x": 5000, "y": 640, "patrol_start": 4900, "patrol_end": 5100, "facing": "right" },
+    { "type": "shield_trooper", "x": 5500, "y": 640, "patrol_start": 5400, "patrol_end": 5600, "facing": "left" }
+  ],
+  "bosses": [
+    { "id": "neuro_beast", "x": 6200, "y": 560, "trigger_distance": 300 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1600, "y": 610 },
+    { "id": "cp_02", "x": 3400, "y": 610 },
+    { "id": "cp_03", "x": 5200, "y": 610 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_07_data_vault",
+      "type": "hidden_room",
+      "x": 2900,
+      "y": 440,
+      "trigger": "hacking_terminal",
+      "contents": [
+        { "item": "nexus_core_fragment", "count": 1 },
+        { "item": "energy_cell_medium", "count": 2 }
+      ]
+    },
+    {
+      "id": "secret_07_log",
+      "type": "lore_log",
+      "x": 4800,
+      "y": 610,
+      "log_file": "lore/log_07_eta.json"
+    }
+  ],
+  "hazards": [
+    { "type": "laser_gate", "x": 1400, "y": 500, "height": 140, "active": true, "toggle_interval": 2.0 },
+    { "type": "electric_floor", "x": 2400, "y": 640, "width": 192, "damage_per_second": 25, "toggle_interval": 3.0 },
+    { "type": "data_stream_hazard", "x": 3700, "y": 500, "damage": 30, "interval": 4.0 },
+    { "type": "laser_gate", "x": 5100, "y": 520, "height": 120, "active": true, "toggle_interval": 1.5 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Breach the Neural Nexus server hub and destroy the Neuro Beast AI controller.",
+    "exit_x": 6800,
+    "exit_y": 580,
+    "secondary_objectives": [
+      { "id": "hack_terminals", "description": "Access 3 data terminals.", "reward_credits": 300 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 640, "dialogue_file": "dialogue/level_07_intro.json", "once": true },
+    { "x": 5900, "y": 610, "dialogue_file": "dialogue/level_07_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_08"
+}

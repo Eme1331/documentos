@@ -1,0 +1,312 @@
+{
+  "enemies": [
+    {
+      "id": "grunt",
+      "name": "Nexus Grunt",
+      "type": "ground",
+      "lore": "Basic infantry units deployed by Nexus Corp. Low-cost and expendable, they rely on numbers rather than skill.",
+      "sprite": "assets/sprites/enemies/grunt.png",
+      "stats": {
+        "hp": 40,
+        "damage": 10,
+        "speed": 110,
+        "patrol_speed": 60,
+        "aggro_range": 220,
+        "chase_range": 400,
+        "attack_range": 55,
+        "attack_cooldown": 1.2,
+        "defense": 4,
+        "weight": 1.0,
+        "knockback_resistance": 0.0,
+        "xp_reward": 15,
+        "drop_chance": 0.25,
+        "possible_drops": ["health_pack", "energy_cell", "credits_small"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 180,
+        "can_jump": false,
+        "can_climb": false,
+        "alert_others": true,
+        "alert_radius": 200,
+        "retreat_threshold": 0.2,
+        "attack_pattern": "melee_charge"
+      },
+      "animation": {
+        "idle_frames": 4,
+        "walk_frames": 6,
+        "run_frames": 8,
+        "attack_frames": 5,
+        "death_frames": 6,
+        "frame_duration": 0.1
+      }
+    },
+    {
+      "id": "grunt_elite",
+      "name": "Nexus Elite Grunt",
+      "type": "ground",
+      "lore": "Upgraded grunts fitted with shielding modules and better weaponry. They coordinate attacks and can call for reinforcements.",
+      "sprite": "assets/sprites/enemies/grunt_elite.png",
+      "stats": {
+        "hp": 70,
+        "damage": 16,
+        "speed": 130,
+        "patrol_speed": 70,
+        "aggro_range": 260,
+        "chase_range": 450,
+        "attack_range": 60,
+        "attack_cooldown": 1.0,
+        "defense": 8,
+        "shield_hp": 30,
+        "weight": 1.1,
+        "knockback_resistance": 0.15,
+        "xp_reward": 30,
+        "drop_chance": 0.4,
+        "possible_drops": ["health_pack", "energy_cell", "armor_chip", "credits_medium"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 200,
+        "can_jump": false,
+        "can_climb": true,
+        "alert_others": true,
+        "alert_radius": 280,
+        "calls_reinforcements": true,
+        "reinforce_cooldown": 15.0,
+        "retreat_threshold": 0.15,
+        "attack_pattern": "melee_charge_and_shoot"
+      },
+      "animation": {
+        "idle_frames": 4,
+        "walk_frames": 6,
+        "run_frames": 8,
+        "attack_frames": 7,
+        "death_frames": 8,
+        "frame_duration": 0.09
+      }
+    },
+    {
+      "id": "flying_drone",
+      "name": "Nexus Patrol Drone",
+      "type": "flying",
+      "lore": "Autonomous aerial units that scan for intruders. Once locked on, they strafe with laser bursts and are difficult to evade.",
+      "sprite": "assets/sprites/enemies/flying_drone.png",
+      "stats": {
+        "hp": 30,
+        "damage": 12,
+        "speed": 160,
+        "patrol_speed": 90,
+        "aggro_range": 300,
+        "chase_range": 500,
+        "attack_range": 280,
+        "attack_cooldown": 1.8,
+        "defense": 2,
+        "weight": 0.6,
+        "knockback_resistance": 0.2,
+        "xp_reward": 20,
+        "drop_chance": 0.3,
+        "possible_drops": ["energy_cell", "credits_small", "drone_part"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 300,
+        "patrol_altitude_min": 80,
+        "patrol_altitude_max": 200,
+        "can_jump": false,
+        "is_flying": true,
+        "hover_height": 130,
+        "hover_variance": 40,
+        "alert_others": true,
+        "alert_radius": 350,
+        "retreat_threshold": 0.1,
+        "attack_pattern": "ranged_laser_burst",
+        "burst_count": 3,
+        "burst_interval": 0.15
+      },
+      "animation": {
+        "idle_frames": 4,
+        "fly_frames": 6,
+        "attack_frames": 4,
+        "death_frames": 8,
+        "frame_duration": 0.08
+      }
+    },
+    {
+      "id": "stealth_drone",
+      "name": "Shadow Drone",
+      "type": "flying",
+      "lore": "Experimental cloaking drones that are nearly invisible until they attack. Detected briefly by their propulsion heat signatures.",
+      "sprite": "assets/sprites/enemies/stealth_drone.png",
+      "stats": {
+        "hp": 25,
+        "damage": 18,
+        "speed": 200,
+        "patrol_speed": 120,
+        "aggro_range": 260,
+        "chase_range": 420,
+        "attack_range": 200,
+        "attack_cooldown": 2.5,
+        "defense": 1,
+        "weight": 0.5,
+        "knockback_resistance": 0.0,
+        "xp_reward": 35,
+        "drop_chance": 0.45,
+        "possible_drops": ["energy_cell", "stealth_chip", "credits_medium"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 250,
+        "is_flying": true,
+        "is_cloaked": true,
+        "cloak_breaks_on_attack": true,
+        "recloak_delay": 3.0,
+        "alert_others": false,
+        "retreat_threshold": 0.25,
+        "attack_pattern": "ambush_dive",
+        "dive_speed": 450
+      },
+      "animation": {
+        "idle_frames": 4,
+        "fly_frames": 6,
+        "attack_frames": 5,
+        "death_frames": 7,
+        "frame_duration": 0.08
+      }
+    },
+    {
+      "id": "turret",
+      "name": "Auto-Turret MK-II",
+      "type": "stationary",
+      "lore": "Wall-mounted defense cannons installed throughout Nexus Corp facilities. They rotate to track targets and fire high-velocity plasma bolts.",
+      "sprite": "assets/sprites/enemies/turret.png",
+      "stats": {
+        "hp": 60,
+        "damage": 20,
+        "speed": 0,
+        "patrol_speed": 0,
+        "aggro_range": 380,
+        "chase_range": 0,
+        "attack_range": 360,
+        "attack_cooldown": 2.0,
+        "defense": 12,
+        "weight": 9999,
+        "knockback_resistance": 1.0,
+        "xp_reward": 25,
+        "drop_chance": 0.5,
+        "possible_drops": ["credits_medium", "armor_chip", "turret_component"]
+      },
+      "behavior": {
+        "patrol": false,
+        "stationary": true,
+        "rotation_speed": 80,
+        "can_rotate": true,
+        "rotation_arc": 180,
+        "alert_others": true,
+        "alert_radius": 200,
+        "retreat_threshold": 0.0,
+        "attack_pattern": "sustained_fire",
+        "burst_count": 5,
+        "burst_interval": 0.2,
+        "burst_cooldown": 2.5,
+        "projectile_speed": 650,
+        "projectile_type": "plasma_bolt"
+      },
+      "animation": {
+        "idle_frames": 2,
+        "rotate_frames": 4,
+        "attack_frames": 4,
+        "death_frames": 6,
+        "frame_duration": 0.1
+      }
+    },
+    {
+      "id": "heavy_soldier",
+      "name": "Nexus Heavy",
+      "type": "ground",
+      "lore": "Armored shock troopers equipped with rocket launchers and heavy plating. Slow but devastatingly powerful.",
+      "sprite": "assets/sprites/enemies/heavy_soldier.png",
+      "stats": {
+        "hp": 120,
+        "damage": 30,
+        "speed": 80,
+        "patrol_speed": 45,
+        "aggro_range": 240,
+        "chase_range": 380,
+        "attack_range": 300,
+        "attack_cooldown": 3.0,
+        "defense": 18,
+        "weight": 2.0,
+        "knockback_resistance": 0.6,
+        "xp_reward": 50,
+        "drop_chance": 0.6,
+        "possible_drops": ["health_pack", "armor_chip", "rocket_component", "credits_large"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 150,
+        "can_jump": false,
+        "can_climb": false,
+        "alert_others": true,
+        "alert_radius": 300,
+        "retreat_threshold": 0.2,
+        "attack_pattern": "rocket_lob",
+        "projectile_speed": 400,
+        "projectile_type": "rocket",
+        "explosion_radius": 100,
+        "explosion_damage": 30
+      },
+      "animation": {
+        "idle_frames": 3,
+        "walk_frames": 5,
+        "attack_frames": 8,
+        "death_frames": 10,
+        "frame_duration": 0.12
+      }
+    },
+    {
+      "id": "bio_crawler",
+      "name": "Bio Crawler",
+      "type": "ground",
+      "lore": "Mutated organisms engineered by Nexus Corp's biotech division. They cling to walls and ceilings and leap at prey with acidic claws.",
+      "sprite": "assets/sprites/enemies/bio_crawler.png",
+      "stats": {
+        "hp": 35,
+        "damage": 14,
+        "speed": 180,
+        "patrol_speed": 100,
+        "aggro_range": 200,
+        "chase_range": 380,
+        "attack_range": 65,
+        "attack_cooldown": 0.9,
+        "defense": 3,
+        "weight": 0.8,
+        "knockback_resistance": 0.05,
+        "xp_reward": 22,
+        "drop_chance": 0.2,
+        "possible_drops": ["bio_sample", "credits_small"]
+      },
+      "behavior": {
+        "patrol": true,
+        "patrol_radius": 160,
+        "can_jump": true,
+        "jump_force": 450,
+        "can_wall_cling": true,
+        "can_ceiling_walk": true,
+        "alert_others": false,
+        "retreat_threshold": 0.0,
+        "attack_pattern": "leap_attack",
+        "leap_speed": 500,
+        "acid_damage_per_second": 4,
+        "acid_duration": 2.0
+      },
+      "animation": {
+        "idle_frames": 4,
+        "walk_frames": 8,
+        "leap_frames": 5,
+        "attack_frames": 4,
+        "death_frames": 6,
+        "frame_duration": 0.08
+      }
+    }
+  ]
+}

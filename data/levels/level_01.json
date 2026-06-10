@@ -1,0 +1,78 @@
+{
+  "id": "level_01",
+  "name": "Crashdown Zone",
+  "subtitle": "The Beginning of the End",
+  "music_track": "audio/music/level_01_crashdown.ogg",
+  "tilemap_file": "tilemaps/level_01.tmx",
+  "background_color": "#1a1a2e",
+  "background_layers": [
+    { "image": "assets/backgrounds/city_ruins_far.png", "parallax": 0.2 },
+    { "image": "assets/backgrounds/city_ruins_mid.png", "parallax": 0.5 },
+    { "image": "assets/backgrounds/city_ruins_near.png", "parallax": 0.8 }
+  ],
+  "gravity": 980,
+  "width_tiles": 200,
+  "height_tiles": 20,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 480, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 640, "y": 480, "patrol_start": 540, "patrol_end": 740, "facing": "right" },
+    { "type": "grunt", "x": 1200, "y": 480, "patrol_start": 1100, "patrol_end": 1300, "facing": "left" },
+    { "type": "grunt", "x": 1900, "y": 480, "patrol_start": 1800, "patrol_end": 2000, "facing": "right" },
+    { "type": "flying_drone", "x": 1500, "y": 300, "patrol_start": 1300, "patrol_end": 1700 },
+    { "type": "grunt", "x": 2400, "y": 480, "patrol_start": 2300, "patrol_end": 2500, "facing": "right" },
+    { "type": "turret", "x": 2800, "y": 448, "direction": "left" },
+    { "type": "grunt", "x": 3100, "y": 480, "patrol_start": 3000, "patrol_end": 3200, "facing": "left" },
+    { "type": "flying_drone", "x": 3500, "y": 280, "patrol_start": 3300, "patrol_end": 3700 },
+    { "type": "grunt", "x": 3800, "y": 480, "patrol_start": 3700, "patrol_end": 3900, "facing": "right" },
+    { "type": "turret", "x": 4200, "y": 448, "direction": "left" }
+  ],
+  "bosses": [
+    { "id": "titan_x_drone", "x": 4800, "y": 380, "trigger_distance": 300 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1280, "y": 450 },
+    { "id": "cp_02", "x": 2560, "y": 450 },
+    { "id": "cp_03", "x": 3840, "y": 450 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_01_hidden_cache",
+      "type": "hidden_room",
+      "x": 960,
+      "y": 320,
+      "trigger": "breakable_wall",
+      "contents": [
+        { "item": "health_pack", "count": 1 },
+        { "item": "energy_cell", "count": 1 }
+      ]
+    },
+    {
+      "id": "secret_01_log",
+      "type": "lore_log",
+      "x": 2100,
+      "y": 450,
+      "log_file": "lore/log_01_alpha.json"
+    }
+  ],
+  "hazards": [
+    { "type": "spike_pit", "x": 1700, "y": 490, "width": 96 },
+    { "type": "laser_gate", "x": 3200, "y": 400, "height": 80, "active": true, "toggle_interval": 3.0 }
+  ],
+  "objective": {
+    "type": "reach_exit",
+    "description": "Escape the crash site and reach the underground passage.",
+    "exit_x": 5200,
+    "exit_y": 450,
+    "secondary_objectives": [
+      { "id": "kill_all_turrets", "description": "Destroy all auto-turrets in the zone.", "reward_credits": 50 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 480, "dialogue_file": "dialogue/level_01_intro.json", "once": true },
+    { "x": 4600, "y": 480, "dialogue_file": "dialogue/level_01_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_02"
+}

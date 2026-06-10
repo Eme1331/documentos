@@ -1,0 +1,82 @@
+{
+  "id": "level_02",
+  "name": "Ironworks Underbelly",
+  "subtitle": "Steel and Shadows",
+  "music_track": "audio/music/level_02_ironworks.ogg",
+  "tilemap_file": "tilemaps/level_02.tmx",
+  "background_color": "#0d0d1a",
+  "background_layers": [
+    { "image": "assets/backgrounds/factory_far.png", "parallax": 0.2 },
+    { "image": "assets/backgrounds/factory_mid.png", "parallax": 0.5 },
+    { "image": "assets/backgrounds/factory_near.png", "parallax": 0.85 }
+  ],
+  "gravity": 980,
+  "width_tiles": 220,
+  "height_tiles": 25,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 640, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 500, "y": 640, "patrol_start": 400, "patrol_end": 600, "facing": "right" },
+    { "type": "shield_trooper", "x": 900, "y": 640, "patrol_start": 800, "patrol_end": 1000, "facing": "left" },
+    { "type": "turret", "x": 1300, "y": 608, "direction": "left" },
+    { "type": "grunt", "x": 1600, "y": 480, "patrol_start": 1500, "patrol_end": 1700, "facing": "right" },
+    { "type": "flying_drone", "x": 2000, "y": 350, "patrol_start": 1800, "patrol_end": 2200 },
+    { "type": "shield_trooper", "x": 2500, "y": 640, "patrol_start": 2400, "patrol_end": 2600, "facing": "left" },
+    { "type": "grunt", "x": 2900, "y": 640, "patrol_start": 2800, "patrol_end": 3000, "facing": "right" },
+    { "type": "turret", "x": 3300, "y": 608, "direction": "left" },
+    { "type": "flying_drone", "x": 3700, "y": 300, "patrol_start": 3500, "patrol_end": 3900 },
+    { "type": "grunt", "x": 4100, "y": 640, "patrol_start": 4000, "patrol_end": 4200, "facing": "right" },
+    { "type": "shield_trooper", "x": 4500, "y": 640, "patrol_start": 4400, "patrol_end": 4600, "facing": "left" },
+    { "type": "turret", "x": 4900, "y": 608, "direction": "left" }
+  ],
+  "bosses": [
+    { "id": "scorpion_mecha", "x": 5500, "y": 580, "trigger_distance": 300 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1500, "y": 620 },
+    { "id": "cp_02", "x": 3000, "y": 620 },
+    { "id": "cp_03", "x": 4500, "y": 620 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_02_armory",
+      "type": "hidden_room",
+      "x": 1100,
+      "y": 480,
+      "trigger": "false_floor",
+      "contents": [
+        { "item": "plasma_rifle", "count": 1 },
+        { "item": "ammo_pack", "count": 2 }
+      ]
+    },
+    {
+      "id": "secret_02_log",
+      "type": "lore_log",
+      "x": 3200,
+      "y": 580,
+      "log_file": "lore/log_02_beta.json"
+    }
+  ],
+  "hazards": [
+    { "type": "moving_crusher", "x": 1200, "y": 500, "height": 140, "speed": 60, "interval": 2.5 },
+    { "type": "conveyor_belt", "x": 2200, "y": 642, "width": 320, "direction": "left", "speed": 80 },
+    { "type": "spike_pit", "x": 3500, "y": 650, "width": 128 },
+    { "type": "laser_gate", "x": 4300, "y": 540, "height": 100, "active": true, "toggle_interval": 2.0 }
+  ],
+  "objective": {
+    "type": "reach_exit",
+    "description": "Navigate the Nexus factory floor and destroy the Scorpion Mecha.",
+    "exit_x": 6000,
+    "exit_y": 620,
+    "secondary_objectives": [
+      { "id": "find_armory", "description": "Locate the hidden armory.", "reward_credits": 80 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 640, "dialogue_file": "dialogue/level_02_intro.json", "once": true },
+    { "x": 5200, "y": 640, "dialogue_file": "dialogue/level_02_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_03"
+}

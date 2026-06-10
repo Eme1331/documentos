@@ -1,0 +1,84 @@
+{
+  "id": "level_03",
+  "name": "Glacial Research Station",
+  "subtitle": "Cold Reception",
+  "music_track": "audio/music/level_03_glacial.ogg",
+  "tilemap_file": "tilemaps/level_03.tmx",
+  "background_color": "#0a1a2e",
+  "background_layers": [
+    { "image": "assets/backgrounds/glacier_far.png", "parallax": 0.15 },
+    { "image": "assets/backgrounds/glacier_mid.png", "parallax": 0.45 },
+    { "image": "assets/backgrounds/glacier_near.png", "parallax": 0.8 }
+  ],
+  "gravity": 980,
+  "environment_effects": [
+    { "type": "blizzard", "wind_force": 30, "visibility_reduction": 0.2 }
+  ],
+  "width_tiles": 210,
+  "height_tiles": 22,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 560, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 450, "y": 560, "patrol_start": 350, "patrol_end": 550, "facing": "right" },
+    { "type": "flying_drone", "x": 900, "y": 320, "patrol_start": 700, "patrol_end": 1100 },
+    { "type": "turret", "x": 1400, "y": 528, "direction": "left" },
+    { "type": "shield_trooper", "x": 1800, "y": 560, "patrol_start": 1700, "patrol_end": 1900, "facing": "left" },
+    { "type": "stealth_assassin", "x": 2300, "y": 560, "patrol_start": 2200, "patrol_end": 2500, "facing": "right" },
+    { "type": "grunt", "x": 2700, "y": 400, "patrol_start": 2600, "patrol_end": 2800, "facing": "left" },
+    { "type": "flying_drone", "x": 3100, "y": 280, "patrol_start": 2900, "patrol_end": 3300 },
+    { "type": "turret", "x": 3600, "y": 528, "direction": "left" },
+    { "type": "stealth_assassin", "x": 4000, "y": 560, "patrol_start": 3900, "patrol_end": 4200, "facing": "right" },
+    { "type": "shield_trooper", "x": 4500, "y": 560, "patrol_start": 4400, "patrol_end": 4600, "facing": "left" }
+  ],
+  "bosses": [
+    { "id": "cryo_sentinel", "x": 5200, "y": 480, "trigger_distance": 280 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1200, "y": 530 },
+    { "id": "cp_02", "x": 2800, "y": 530 },
+    { "id": "cp_03", "x": 4200, "y": 530 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_03_cryo_cache",
+      "type": "hidden_room",
+      "x": 1600,
+      "y": 350,
+      "trigger": "false_wall",
+      "contents": [
+        { "item": "cryo_grenade", "count": 3 },
+        { "item": "health_pack_medium", "count": 1 }
+      ]
+    },
+    {
+      "id": "secret_03_log",
+      "type": "lore_log",
+      "x": 3800,
+      "y": 500,
+      "log_file": "lore/log_03_gamma.json"
+    }
+  ],
+  "hazards": [
+    { "type": "icy_floor", "x": 800, "y": 530, "width": 384, "slide_factor": 0.6 },
+    { "type": "icy_floor", "x": 2200, "y": 530, "width": 256, "slide_factor": 0.6 },
+    { "type": "cryo_vent", "x": 1000, "y": 400, "direction": "down", "damage": 15, "freeze_chance": 0.5, "interval": 3.0 },
+    { "type": "cryo_vent", "x": 3400, "y": 400, "direction": "down", "damage": 15, "freeze_chance": 0.5, "interval": 2.5 },
+    { "type": "spike_pit", "x": 4100, "y": 570, "width": 96 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Infiltrate the Nexus cryo research station and shut down the Cryo Sentinel.",
+    "exit_x": 5700,
+    "exit_y": 500,
+    "secondary_objectives": [
+      { "id": "collect_logs", "description": "Recover all research logs.", "reward_credits": 120 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 560, "dialogue_file": "dialogue/level_03_intro.json", "once": true },
+    { "x": 5000, "y": 500, "dialogue_file": "dialogue/level_03_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_04"
+}

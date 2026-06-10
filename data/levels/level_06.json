@@ -1,0 +1,85 @@
+{
+  "id": "level_06",
+  "name": "Magma Core",
+  "subtitle": "Heart of the Volcano",
+  "music_track": "audio/music/level_06_magmacore.ogg",
+  "tilemap_file": "tilemaps/level_06.tmx",
+  "background_color": "#1a0800",
+  "background_layers": [
+    { "image": "assets/backgrounds/volcano_far.png", "parallax": 0.2 },
+    { "image": "assets/backgrounds/volcano_mid.png", "parallax": 0.5 },
+    { "image": "assets/backgrounds/volcano_near.png", "parallax": 0.85 }
+  ],
+  "gravity": 1050,
+  "environment_effects": [
+    { "type": "heat_distortion", "intensity": 0.6 },
+    { "type": "falling_embers", "density": 0.4, "damage": 5 }
+  ],
+  "width_tiles": 250,
+  "height_tiles": 30,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 800, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 500, "y": 800, "patrol_start": 400, "patrol_end": 600, "facing": "right" },
+    { "type": "turret", "x": 1100, "y": 768, "direction": "left" },
+    { "type": "shield_trooper", "x": 1600, "y": 800, "patrol_start": 1500, "patrol_end": 1700, "facing": "left" },
+    { "type": "flying_drone", "x": 2100, "y": 500, "patrol_start": 1900, "patrol_end": 2300 },
+    { "type": "stealth_assassin", "x": 2700, "y": 800, "patrol_start": 2600, "patrol_end": 2900, "facing": "right" },
+    { "type": "grunt", "x": 3200, "y": 640, "patrol_start": 3100, "patrol_end": 3300, "facing": "right" },
+    { "type": "turret", "x": 3700, "y": 768, "direction": "left" },
+    { "type": "shield_trooper", "x": 4200, "y": 800, "patrol_start": 4100, "patrol_end": 4300, "facing": "left" },
+    { "type": "flying_drone", "x": 4800, "y": 450, "patrol_start": 4600, "patrol_end": 5000 },
+    { "type": "stealth_assassin", "x": 5300, "y": 800, "patrol_start": 5200, "patrol_end": 5500, "facing": "right" }
+  ],
+  "bosses": [
+    { "id": "magma_colossus", "x": 6200, "y": 700, "trigger_distance": 350 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1500, "y": 770 },
+    { "id": "cp_02", "x": 3300, "y": 770 },
+    { "id": "cp_03", "x": 5100, "y": 770 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_06_ancient_forge",
+      "type": "hidden_room",
+      "x": 2400,
+      "y": 600,
+      "trigger": "false_wall",
+      "contents": [
+        { "item": "gravity_blade", "count": 1 },
+        { "item": "void_shard", "count": 3 }
+      ]
+    },
+    {
+      "id": "secret_06_log",
+      "type": "lore_log",
+      "x": 4500,
+      "y": 770,
+      "log_file": "lore/log_06_zeta.json"
+    }
+  ],
+  "hazards": [
+    { "type": "lava_pool", "x": 900, "y": 810, "width": 160, "damage_per_second": 40 },
+    { "type": "lava_pool", "x": 2500, "y": 810, "width": 128, "damage_per_second": 40 },
+    { "type": "lava_geyser", "x": 1900, "y": 700, "damage": 55, "interval": 5.0, "warning_time": 1.0, "height": 200 },
+    { "type": "lava_geyser", "x": 3900, "y": 700, "damage": 55, "interval": 4.0, "warning_time": 1.0, "height": 200 },
+    { "type": "crumbling_platform", "x": 4400, "y": 740, "width": 128, "crumble_delay": 1.0 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Descend to the volcano's core and destroy the Magma Colossus before the eruption.",
+    "exit_x": 6800,
+    "exit_y": 730,
+    "secondary_objectives": [
+      { "id": "forge_path", "description": "Find the ancient forge and loot it.", "reward_credits": 250 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 800, "dialogue_file": "dialogue/level_06_intro.json", "once": true },
+    { "x": 5900, "y": 750, "dialogue_file": "dialogue/level_06_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_07"
+}

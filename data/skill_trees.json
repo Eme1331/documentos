@@ -1,0 +1,490 @@
+{
+  "skill_trees": {
+    "ethan": {
+      "character": "ethan",
+      "nodes": [
+        {
+          "id": "ethan_combat_basics",
+          "name": "Combat Basics",
+          "description": "Fundamental combat training. Slightly increases light attack damage.",
+          "prerequisites": [],
+          "cost": 1,
+          "modifier_type": "attack_light_damage",
+          "modifier_value": 3,
+          "position": [0, 0]
+        },
+        {
+          "id": "ethan_iron_fist",
+          "name": "Iron Fist",
+          "description": "Melee attacks deal 10% more damage.",
+          "prerequisites": ["ethan_combat_basics"],
+          "cost": 2,
+          "modifier_type": "melee_damage_percent",
+          "modifier_value": 0.10,
+          "position": [1, 0]
+        },
+        {
+          "id": "ethan_heavy_impact",
+          "name": "Heavy Impact",
+          "description": "Heavy attack knockback increased by 150. Stagger duration extended by 0.5s.",
+          "prerequisites": ["ethan_iron_fist"],
+          "cost": 3,
+          "modifier_type": "heavy_knockback",
+          "modifier_value": 150,
+          "secondary_modifier_type": "stagger_duration",
+          "secondary_modifier_value": 0.5,
+          "position": [2, 0]
+        },
+        {
+          "id": "ethan_executioner",
+          "name": "Executioner",
+          "description": "Attacks against enemies below 25% HP deal 35% bonus damage.",
+          "prerequisites": ["ethan_heavy_impact"],
+          "cost": 4,
+          "modifier_type": "execute_damage_percent",
+          "modifier_value": 0.35,
+          "execute_threshold": 0.25,
+          "position": [3, 0]
+        },
+        {
+          "id": "ethan_plasma_mastery",
+          "name": "Plasma Mastery",
+          "description": "Plasma Burst damage increased by 15 and range increased by 80.",
+          "prerequisites": ["ethan_combat_basics"],
+          "cost": 2,
+          "modifier_type": "special_1_damage",
+          "modifier_value": 15,
+          "secondary_modifier_type": "special_1_range",
+          "secondary_modifier_value": 80,
+          "position": [1, 1]
+        },
+        {
+          "id": "ethan_rapid_plasma",
+          "name": "Rapid Plasma",
+          "description": "Plasma Burst cooldown reduced by 0.4s.",
+          "prerequisites": ["ethan_plasma_mastery"],
+          "cost": 2,
+          "modifier_type": "special_1_cooldown",
+          "modifier_value": -0.4,
+          "position": [2, 1]
+        },
+        {
+          "id": "ethan_plasma_nova",
+          "name": "Plasma Nova",
+          "description": "Plasma Burst now explodes on impact, dealing 50% damage in a 100-unit radius.",
+          "prerequisites": ["ethan_rapid_plasma"],
+          "cost": 4,
+          "modifier_type": "special_1_aoe_explosion",
+          "modifier_value": 0.5,
+          "aoe_radius": 100,
+          "position": [3, 1]
+        },
+        {
+          "id": "ethan_iron_will",
+          "name": "Iron Will",
+          "description": "Max HP increased by 30.",
+          "prerequisites": ["ethan_combat_basics"],
+          "cost": 2,
+          "modifier_type": "max_hp",
+          "modifier_value": 30,
+          "position": [1, 2]
+        },
+        {
+          "id": "ethan_fortitude",
+          "name": "Fortitude",
+          "description": "Defense increased by 6.",
+          "prerequisites": ["ethan_iron_will"],
+          "cost": 3,
+          "modifier_type": "defense",
+          "modifier_value": 6,
+          "position": [2, 2]
+        },
+        {
+          "id": "ethan_titan_body",
+          "name": "Titan Body",
+          "description": "Max HP increased by 50 and knockback resistance increased by 0.2.",
+          "prerequisites": ["ethan_fortitude"],
+          "cost": 4,
+          "modifier_type": "max_hp",
+          "modifier_value": 50,
+          "secondary_modifier_type": "knockback_resistance",
+          "secondary_modifier_value": 0.2,
+          "position": [3, 2]
+        },
+        {
+          "id": "ethan_swift_dash",
+          "name": "Swift Dash",
+          "description": "Dash cooldown reduced by 0.2s and speed increased by 20.",
+          "prerequisites": ["ethan_combat_basics"],
+          "cost": 2,
+          "modifier_type": "dash_cooldown",
+          "modifier_value": -0.2,
+          "secondary_modifier_type": "dash_speed",
+          "secondary_modifier_value": 20,
+          "position": [1, 3]
+        },
+        {
+          "id": "ethan_overdrive_extension",
+          "name": "Overdrive Extension",
+          "description": "Overdrive duration increased by 2s.",
+          "prerequisites": ["ethan_swift_dash"],
+          "cost": 3,
+          "modifier_type": "special_3_duration",
+          "modifier_value": 2.0,
+          "position": [2, 3]
+        },
+        {
+          "id": "ethan_battle_cry",
+          "name": "Battle Cry",
+          "description": "Activating Overdrive also restores 20 HP.",
+          "prerequisites": ["ethan_overdrive_extension"],
+          "cost": 4,
+          "modifier_type": "special_3_heal_on_activate",
+          "modifier_value": 20,
+          "position": [3, 3]
+        },
+        {
+          "id": "ethan_crit_edge",
+          "name": "Critical Edge",
+          "description": "Critical hit chance increased by 5%.",
+          "prerequisites": ["ethan_iron_fist"],
+          "cost": 2,
+          "modifier_type": "crit_chance",
+          "modifier_value": 0.05,
+          "position": [2, 4]
+        },
+        {
+          "id": "ethan_lethal_precision",
+          "name": "Lethal Precision",
+          "description": "Critical hits deal an additional 0.25x damage.",
+          "prerequisites": ["ethan_crit_edge"],
+          "cost": 3,
+          "modifier_type": "crit_multiplier",
+          "modifier_value": 0.25,
+          "position": [3, 4]
+        }
+      ]
+    },
+    "cy_x7": {
+      "character": "cy_x7",
+      "nodes": [
+        {
+          "id": "cy_blink_basics",
+          "name": "Blink Protocol",
+          "description": "Phase Blink range increased by 50 units.",
+          "prerequisites": [],
+          "cost": 1,
+          "modifier_type": "special_1_range",
+          "modifier_value": 50,
+          "position": [0, 0]
+        },
+        {
+          "id": "cy_ghost_strike",
+          "name": "Ghost Strike",
+          "description": "Phase Blink damage increased by 10.",
+          "prerequisites": ["cy_blink_basics"],
+          "cost": 2,
+          "modifier_type": "special_1_damage",
+          "modifier_value": 10,
+          "position": [1, 0]
+        },
+        {
+          "id": "cy_phantom_assault",
+          "name": "Phantom Assault",
+          "description": "After Phase Blink, the next 3 attacks within 1.5s deal 40% bonus damage.",
+          "prerequisites": ["cy_ghost_strike"],
+          "cost": 3,
+          "modifier_type": "special_1_post_blink_bonus",
+          "modifier_value": 0.40,
+          "attack_count": 3,
+          "duration": 1.5,
+          "position": [2, 0]
+        },
+        {
+          "id": "cy_double_blink",
+          "name": "Double Blink",
+          "description": "Phase Blink can be used twice in quick succession before triggering its cooldown.",
+          "prerequisites": ["cy_phantom_assault"],
+          "cost": 5,
+          "modifier_type": "special_1_charges",
+          "modifier_value": 2,
+          "position": [3, 0]
+        },
+        {
+          "id": "cy_emp_basics",
+          "name": "EMP Upgrade",
+          "description": "EMP Grenade stun duration increased by 0.5s.",
+          "prerequisites": ["cy_blink_basics"],
+          "cost": 2,
+          "modifier_type": "special_2_stun_duration",
+          "modifier_value": 0.5,
+          "position": [1, 1]
+        },
+        {
+          "id": "cy_emp_radius",
+          "name": "Expanded EMP",
+          "description": "EMP Grenade AoE radius increased by 50.",
+          "prerequisites": ["cy_emp_basics"],
+          "cost": 2,
+          "modifier_type": "special_2_aoe_radius",
+          "modifier_value": 50,
+          "position": [2, 1]
+        },
+        {
+          "id": "cy_emp_chain",
+          "name": "Chain EMP",
+          "description": "EMP effect chains to 2 additional nearby enemies.",
+          "prerequisites": ["cy_emp_radius"],
+          "cost": 4,
+          "modifier_type": "special_2_chain_count",
+          "modifier_value": 2,
+          "chain_range": 150,
+          "position": [3, 1]
+        },
+        {
+          "id": "cy_speed_frame",
+          "name": "Speed Frame",
+          "description": "Base movement speed increased by 30.",
+          "prerequisites": ["cy_blink_basics"],
+          "cost": 2,
+          "modifier_type": "speed",
+          "modifier_value": 30,
+          "position": [1, 2]
+        },
+        {
+          "id": "cy_overdash",
+          "name": "Overdash",
+          "description": "Dash speed increased by 80 and dash duration extended by 0.03s.",
+          "prerequisites": ["cy_speed_frame"],
+          "cost": 3,
+          "modifier_type": "dash_speed",
+          "modifier_value": 80,
+          "secondary_modifier_type": "dash_duration",
+          "secondary_modifier_value": 0.03,
+          "position": [2, 2]
+        },
+        {
+          "id": "cy_blinding_speed",
+          "name": "Blinding Speed",
+          "description": "When at max speed, basic attacks deal 15% more damage.",
+          "prerequisites": ["cy_overdash"],
+          "cost": 4,
+          "modifier_type": "speed_attack_bonus",
+          "modifier_value": 0.15,
+          "position": [3, 2]
+        },
+        {
+          "id": "cy_overclock_basics",
+          "name": "Overclock Tune",
+          "description": "Overclock duration increased by 1s.",
+          "prerequisites": ["cy_blink_basics"],
+          "cost": 2,
+          "modifier_type": "special_3_duration",
+          "modifier_value": 1.0,
+          "position": [1, 3]
+        },
+        {
+          "id": "cy_overclock_damage",
+          "name": "Damage Overclock",
+          "description": "During Overclock, damage dealt is increased by an additional 20%.",
+          "prerequisites": ["cy_overclock_basics"],
+          "cost": 3,
+          "modifier_type": "special_3_damage_bonus",
+          "modifier_value": 0.20,
+          "position": [2, 3]
+        },
+        {
+          "id": "cy_kill_drive",
+          "name": "Kill Drive",
+          "description": "Killing an enemy reduces all cooldowns by 0.5s.",
+          "prerequisites": ["cy_overclock_damage"],
+          "cost": 5,
+          "modifier_type": "kill_cooldown_reduction",
+          "modifier_value": 0.5,
+          "position": [3, 3]
+        },
+        {
+          "id": "cy_crit_surge",
+          "name": "Critical Surge",
+          "description": "Critical hit chance increased by 8%.",
+          "prerequisites": ["cy_ghost_strike"],
+          "cost": 2,
+          "modifier_type": "crit_chance",
+          "modifier_value": 0.08,
+          "position": [2, 4]
+        },
+        {
+          "id": "cy_assassin_protocol",
+          "name": "Assassin Protocol",
+          "description": "First attack on any enemy deals triple critical damage.",
+          "prerequisites": ["cy_crit_surge"],
+          "cost": 5,
+          "modifier_type": "first_hit_triple_crit",
+          "modifier_value": 3.0,
+          "position": [3, 4]
+        }
+      ]
+    },
+    "zhyra": {
+      "character": "zhyra",
+      "nodes": [
+        {
+          "id": "zh_psionic_basics",
+          "name": "Psionic Focus",
+          "description": "Light attack damage increased by 4 and energy cost reduced by 1.",
+          "prerequisites": [],
+          "cost": 1,
+          "modifier_type": "attack_light_damage",
+          "modifier_value": 4,
+          "secondary_modifier_type": "attack_light_energy_cost",
+          "secondary_modifier_value": -1,
+          "position": [0, 0]
+        },
+        {
+          "id": "zh_cryo_mastery",
+          "name": "Cryo Mastery",
+          "description": "Cryo Lance damage increased by 15 and slow factor increased by 0.1.",
+          "prerequisites": ["zh_psionic_basics"],
+          "cost": 2,
+          "modifier_type": "special_1_damage",
+          "modifier_value": 15,
+          "secondary_modifier_type": "special_1_slow_factor",
+          "secondary_modifier_value": 0.1,
+          "position": [1, 0]
+        },
+        {
+          "id": "zh_frozen_shards",
+          "name": "Frozen Shards",
+          "description": "Cryo Lance shatters into 3 shards on impact, each dealing 40% of base damage.",
+          "prerequisites": ["zh_cryo_mastery"],
+          "cost": 3,
+          "modifier_type": "special_1_shatter",
+          "modifier_value": 3,
+          "shard_damage_percent": 0.40,
+          "position": [2, 0]
+        },
+        {
+          "id": "zh_absolute_zero",
+          "name": "Absolute Zero",
+          "description": "Cryo Lance now has a 20% chance to instantly freeze the target for 5s regardless of other effects.",
+          "prerequisites": ["zh_frozen_shards"],
+          "cost": 5,
+          "modifier_type": "special_1_instant_freeze_chance",
+          "modifier_value": 0.20,
+          "freeze_duration": 5.0,
+          "position": [3, 0]
+        },
+        {
+          "id": "zh_nova_pulse_basics",
+          "name": "Nova Amplifier",
+          "description": "Nova Pulse AoE radius increased by 40.",
+          "prerequisites": ["zh_psionic_basics"],
+          "cost": 2,
+          "modifier_type": "special_2_aoe_radius",
+          "modifier_value": 40,
+          "position": [1, 1]
+        },
+        {
+          "id": "zh_nova_chain",
+          "name": "Nova Chain",
+          "description": "Nova Pulse releases two additional smaller pulses after the first, each dealing 40% damage.",
+          "prerequisites": ["zh_nova_pulse_basics"],
+          "cost": 4,
+          "modifier_type": "special_2_chain_pulses",
+          "modifier_value": 2,
+          "chain_damage_percent": 0.40,
+          "chain_delay": 0.5,
+          "position": [2, 1]
+        },
+        {
+          "id": "zh_singularity_basics",
+          "name": "Singularity Control",
+          "description": "Singularity duration increased by 1s.",
+          "prerequisites": ["zh_psionic_basics"],
+          "cost": 2,
+          "modifier_type": "special_3_duration",
+          "modifier_value": 1.0,
+          "position": [1, 2]
+        },
+        {
+          "id": "zh_singularity_damage",
+          "name": "Void Intensifier",
+          "description": "Singularity DPS increased by 10.",
+          "prerequisites": ["zh_singularity_basics"],
+          "cost": 3,
+          "modifier_type": "special_3_dps",
+          "modifier_value": 10,
+          "position": [2, 2]
+        },
+        {
+          "id": "zh_event_horizon",
+          "name": "Event Horizon",
+          "description": "Singularity pull radius increased by 100 and now applies Cryo slow to all caught enemies.",
+          "prerequisites": ["zh_singularity_damage"],
+          "cost": 5,
+          "modifier_type": "special_3_pull_radius",
+          "modifier_value": 100,
+          "secondary_modifier_type": "special_3_apply_cryo_slow",
+          "secondary_modifier_value": 0.4,
+          "position": [3, 2]
+        },
+        {
+          "id": "zh_energy_mastery",
+          "name": "Energy Mastery",
+          "description": "Max energy increased by 30 and energy regen increased by 3.",
+          "prerequisites": ["zh_psionic_basics"],
+          "cost": 2,
+          "modifier_type": "max_energy",
+          "modifier_value": 30,
+          "secondary_modifier_type": "energy_regen",
+          "secondary_modifier_value": 3.0,
+          "position": [1, 3]
+        },
+        {
+          "id": "zh_overflow",
+          "name": "Overflow",
+          "description": "When energy exceeds 80% capacity, attack damage is increased by 15%.",
+          "prerequisites": ["zh_energy_mastery"],
+          "cost": 3,
+          "modifier_type": "high_energy_damage_bonus",
+          "modifier_value": 0.15,
+          "energy_threshold": 0.80,
+          "position": [2, 3]
+        },
+        {
+          "id": "zh_resonance_cascade",
+          "name": "Resonance Cascade",
+          "description": "Killing an enemy restores 15 energy. Killing a frozen enemy restores 30 energy instead.",
+          "prerequisites": ["zh_overflow"],
+          "cost": 4,
+          "modifier_type": "kill_energy_restore",
+          "modifier_value": 15,
+          "frozen_kill_energy_restore": 30,
+          "position": [3, 3]
+        },
+        {
+          "id": "zh_psionic_shield_upgrade",
+          "name": "Reinforced Psionic Shield",
+          "description": "Psionic Shield absorption increased by 10 and cooldown reduced by 2s.",
+          "prerequisites": ["zh_energy_mastery"],
+          "cost": 3,
+          "modifier_type": "passive_psionic_shield_absorb",
+          "modifier_value": 10,
+          "secondary_modifier_type": "passive_psionic_shield_cooldown",
+          "secondary_modifier_value": -2.0,
+          "position": [2, 4]
+        },
+        {
+          "id": "zh_elemental_overload",
+          "name": "Elemental Overload",
+          "description": "Elemental Resonance passive bonus increases to 30% (from 20%).",
+          "prerequisites": ["zh_psionic_shield_upgrade"],
+          "cost": 5,
+          "modifier_type": "passive_elemental_resonance_bonus",
+          "modifier_value": 0.10,
+          "position": [3, 4]
+        }
+      ]
+    }
+  }
+}

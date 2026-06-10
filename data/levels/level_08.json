@@ -1,0 +1,84 @@
+{
+  "id": "level_08",
+  "name": "Dark Side Facility",
+  "subtitle": "Where Light Dies",
+  "music_track": "audio/music/level_08_darkside.ogg",
+  "tilemap_file": "tilemaps/level_08.tmx",
+  "background_color": "#000010",
+  "background_layers": [
+    { "image": "assets/backgrounds/moon_far.png", "parallax": 0.1 },
+    { "image": "assets/backgrounds/moon_mid.png", "parallax": 0.4 },
+    { "image": "assets/backgrounds/moon_near.png", "parallax": 0.8 }
+  ],
+  "gravity": 600,
+  "environment_effects": [
+    { "type": "low_gravity", "factor": 0.6 },
+    { "type": "darkness", "visibility_radius": 300, "ambient_light": 0.05 }
+  ],
+  "width_tiles": 270,
+  "height_tiles": 30,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 800, "default": true }
+  ],
+  "enemies": [
+    { "type": "stealth_assassin", "x": 500, "y": 800, "patrol_start": 400, "patrol_end": 650, "facing": "right" },
+    { "type": "flying_drone", "x": 1100, "y": 500, "patrol_start": 900, "patrol_end": 1300 },
+    { "type": "stealth_assassin", "x": 1700, "y": 800, "patrol_start": 1600, "patrol_end": 1900, "facing": "left" },
+    { "type": "turret", "x": 2300, "y": 768, "direction": "left" },
+    { "type": "flying_drone", "x": 2900, "y": 400, "patrol_start": 2700, "patrol_end": 3100 },
+    { "type": "stealth_assassin", "x": 3500, "y": 800, "patrol_start": 3400, "patrol_end": 3700, "facing": "right" },
+    { "type": "shield_trooper", "x": 4100, "y": 800, "patrol_start": 4000, "patrol_end": 4200, "facing": "left" },
+    { "type": "turret", "x": 4700, "y": 768, "direction": "left" },
+    { "type": "stealth_assassin", "x": 5300, "y": 800, "patrol_start": 5200, "patrol_end": 5500, "facing": "right" },
+    { "type": "flying_drone", "x": 5900, "y": 450, "patrol_start": 5700, "patrol_end": 6100 }
+  ],
+  "bosses": [
+    { "id": "moon_reaper", "x": 6800, "y": 700, "trigger_distance": 300 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1700, "y": 770 },
+    { "id": "cp_02", "x": 3700, "y": 770 },
+    { "id": "cp_03", "x": 5700, "y": 770 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_08_dark_cache",
+      "type": "hidden_room",
+      "x": 3200,
+      "y": 600,
+      "trigger": "light_source_puzzle",
+      "contents": [
+        { "item": "shield_generator", "count": 1 },
+        { "item": "void_shard", "count": 4 }
+      ]
+    },
+    {
+      "id": "secret_08_log",
+      "type": "lore_log",
+      "x": 5200,
+      "y": 770,
+      "log_file": "lore/log_08_theta.json"
+    }
+  ],
+  "hazards": [
+    { "type": "vacuum_vent", "x": 1500, "y": 700, "force": 200, "direction": "up", "damage_if_touching": 30 },
+    { "type": "void_crack", "x": 2700, "y": 810, "width": 96, "teleports_to": { "x": 2800, "y": 400 } },
+    { "type": "dark_matter_wall", "x": 4400, "y": 680, "height": 120, "damages_on_touch": 20 },
+    { "type": "gap", "x": 5500, "y": 812, "width": 192 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Survive the darkness of the lunar facility and banish the Moon Reaper.",
+    "exit_x": 7400,
+    "exit_y": 720,
+    "secondary_objectives": [
+      { "id": "light_all_lanterns", "description": "Activate all emergency beacons.", "reward_credits": 350 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 800, "dialogue_file": "dialogue/level_08_intro.json", "once": true },
+    { "x": 6500, "y": 750, "dialogue_file": "dialogue/level_08_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_09"
+}

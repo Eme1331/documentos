@@ -1,0 +1,80 @@
+{
+  "id": "level_04",
+  "name": "Biolabs Sector 7",
+  "subtitle": "Mutation Protocol",
+  "music_track": "audio/music/level_04_biolabs.ogg",
+  "tilemap_file": "tilemaps/level_04.tmx",
+  "background_color": "#0d1a0d",
+  "background_layers": [
+    { "image": "assets/backgrounds/biolab_far.png", "parallax": 0.2 },
+    { "image": "assets/backgrounds/biolab_mid.png", "parallax": 0.5 },
+    { "image": "assets/backgrounds/biolab_near.png", "parallax": 0.8 }
+  ],
+  "gravity": 980,
+  "width_tiles": 230,
+  "height_tiles": 22,
+  "tile_size": 32,
+  "spawn_points": [
+    { "id": "start", "x": 96, "y": 560, "default": true }
+  ],
+  "enemies": [
+    { "type": "grunt", "x": 400, "y": 560, "patrol_start": 300, "patrol_end": 500, "facing": "right" },
+    { "type": "grunt", "x": 900, "y": 560, "patrol_start": 800, "patrol_end": 1000, "facing": "left" },
+    { "type": "flying_drone", "x": 1400, "y": 300, "patrol_start": 1200, "patrol_end": 1600 },
+    { "type": "stealth_assassin", "x": 1900, "y": 560, "patrol_start": 1800, "patrol_end": 2100, "facing": "right" },
+    { "type": "turret", "x": 2400, "y": 528, "direction": "left" },
+    { "type": "grunt", "x": 2800, "y": 400, "patrol_start": 2700, "patrol_end": 2900, "facing": "right" },
+    { "type": "shield_trooper", "x": 3300, "y": 560, "patrol_start": 3200, "patrol_end": 3400, "facing": "left" },
+    { "type": "stealth_assassin", "x": 3800, "y": 560, "patrol_start": 3700, "patrol_end": 4000, "facing": "right" },
+    { "type": "flying_drone", "x": 4300, "y": 280, "patrol_start": 4100, "patrol_end": 4500 },
+    { "type": "turret", "x": 4800, "y": 528, "direction": "left" }
+  ],
+  "bosses": [
+    { "id": "mutant_bio_core", "x": 5500, "y": 460, "trigger_distance": 300 }
+  ],
+  "checkpoints": [
+    { "id": "cp_01", "x": 1300, "y": 530 },
+    { "id": "cp_02", "x": 2900, "y": 530 },
+    { "id": "cp_03", "x": 4400, "y": 530 }
+  ],
+  "secrets": [
+    {
+      "id": "secret_04_experiment",
+      "type": "hidden_room",
+      "x": 2000,
+      "y": 380,
+      "trigger": "pressure_plate",
+      "contents": [
+        { "item": "void_shard", "count": 2 },
+        { "item": "energy_cell_medium", "count": 1 }
+      ]
+    },
+    {
+      "id": "secret_04_log",
+      "type": "lore_log",
+      "x": 3600,
+      "y": 500,
+      "log_file": "lore/log_04_delta.json"
+    }
+  ],
+  "hazards": [
+    { "type": "acid_pool", "x": 1200, "y": 570, "width": 128, "damage_per_second": 20 },
+    { "type": "acid_pool", "x": 2600, "y": 570, "width": 96, "damage_per_second": 20 },
+    { "type": "toxic_vent", "x": 1700, "y": 400, "direction": "up", "damage": 12, "poison_duration": 3.0, "interval": 4.0 },
+    { "type": "spike_pit", "x": 3800, "y": 570, "width": 128 }
+  ],
+  "objective": {
+    "type": "defeat_boss",
+    "description": "Destroy the Mutant Bio-Core before it spreads its infection to the surface.",
+    "exit_x": 6100,
+    "exit_y": 490,
+    "secondary_objectives": [
+      { "id": "purge_bio_larva", "description": "Eliminate all bio larvae nests.", "reward_credits": 150 }
+    ]
+  },
+  "dialogue_triggers": [
+    { "x": 200, "y": 560, "dialogue_file": "dialogue/level_04_intro.json", "once": true },
+    { "x": 5200, "y": 500, "dialogue_file": "dialogue/level_04_boss_intro.json", "once": true }
+  ],
+  "unlocks_on_complete": "level_05"
+}
