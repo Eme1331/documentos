@@ -1,0 +1,22 @@
+{
+  "resolution": [1280, 720],
+  "fullscreen": false,
+  "volume": {
+    "master": 1.0,
+    "music": 0.7,
+    "sfx": 0.8
+  },
+  "keybinds": {
+    "MOVE_LEFT": "a",
+    "MOVE_RIGHT": "d",
+    "JUMP": "space",
+    "DASH": "left shift",
+    "ATTACK_LIGHT": "j",
+    "ATTACK_HEAVY": "k",
+    "SPECIAL_1": "u",
+    "SPECIAL_2": "i",
+    "SPECIAL_3": "o",
+    "DODGE": "left ctrl",
+    "PAUSE": "escape"
+  }
+}

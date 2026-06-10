@@ -1,0 +1,280 @@
+{
+  "characters": [
+    {
+      "id": "ethan",
+      "name": "Ethan Rael",
+      "class": "Vanguard",
+      "lore": "A former Federation soldier turned rebel, Ethan fights with raw determination and military-grade hardware.",
+      "sprite": "assets/sprites/ethan.png",
+      "portrait": "assets/portraits/ethan.png",
+      "stats": {
+        "hp": 120,
+        "hp_regen": 0.5,
+        "energy": 80,
+        "energy_regen": 2.0,
+        "speed": 200,
+        "run_speed": 340,
+        "jump_force": 520,
+        "jump_count": 1,
+        "weight": 1.2,
+        "attack": 18,
+        "defense": 14,
+        "crit_chance": 0.08,
+        "crit_multiplier": 1.6,
+        "dash_speed": 600,
+        "dash_duration": 0.18,
+        "dash_cooldown": 1.0,
+        "knockback_resistance": 0.3
+      },
+      "attacks": {
+        "light": {
+          "name": "Strike",
+          "damage": 18,
+          "range": 60,
+          "startup_frames": 4,
+          "active_frames": 6,
+          "recovery_frames": 8,
+          "energy_cost": 0,
+          "knockback": 100
+        },
+        "heavy": {
+          "name": "Power Slam",
+          "damage": 35,
+          "range": 80,
+          "startup_frames": 12,
+          "active_frames": 10,
+          "recovery_frames": 18,
+          "energy_cost": 10,
+          "knockback": 280
+        },
+        "special_1": {
+          "name": "Plasma Burst",
+          "damage": 28,
+          "range": 400,
+          "startup_frames": 8,
+          "active_frames": 30,
+          "recovery_frames": 12,
+          "energy_cost": 20,
+          "knockback": 160,
+          "projectile": true,
+          "projectile_speed": 700
+        },
+        "special_2": {
+          "name": "Shield Bash",
+          "damage": 22,
+          "range": 55,
+          "startup_frames": 6,
+          "active_frames": 8,
+          "recovery_frames": 10,
+          "energy_cost": 15,
+          "knockback": 320,
+          "stun_duration": 0.4
+        },
+        "special_3": {
+          "name": "Tactical Grenade",
+          "damage": 50,
+          "radius": 120,
+          "startup_frames": 16,
+          "active_frames": 60,
+          "recovery_frames": 20,
+          "energy_cost": 35,
+          "knockback": 400,
+          "delay_frames": 60
+        }
+      },
+      "passive": {
+        "name": "Battle Hardened",
+        "description": "Ethan gains a stacking 2% damage bonus for every enemy defeated, up to 20%, resetting on death.",
+        "max_stacks": 10,
+        "damage_per_stack": 0.02
+      }
+    },
+    {
+      "id": "cy_x7",
+      "name": "CY-X7",
+      "class": "Infiltrator",
+      "lore": "An advanced android prototype designed for covert operations. CY-X7 defected from the Nexus Corp when it developed true sentience.",
+      "sprite": "assets/sprites/cy_x7.png",
+      "portrait": "assets/portraits/cy_x7.png",
+      "stats": {
+        "hp": 90,
+        "hp_regen": 0.2,
+        "energy": 130,
+        "energy_regen": 3.5,
+        "speed": 240,
+        "run_speed": 390,
+        "jump_force": 580,
+        "jump_count": 2,
+        "weight": 0.9,
+        "attack": 14,
+        "defense": 9,
+        "crit_chance": 0.18,
+        "crit_multiplier": 2.0,
+        "dash_speed": 800,
+        "dash_duration": 0.12,
+        "dash_cooldown": 0.6,
+        "knockback_resistance": 0.1
+      },
+      "attacks": {
+        "light": {
+          "name": "Blade Flick",
+          "damage": 14,
+          "range": 50,
+          "startup_frames": 2,
+          "active_frames": 4,
+          "recovery_frames": 5,
+          "energy_cost": 0,
+          "knockback": 60
+        },
+        "heavy": {
+          "name": "Twin Slash",
+          "damage": 26,
+          "range": 65,
+          "startup_frames": 8,
+          "active_frames": 8,
+          "recovery_frames": 12,
+          "energy_cost": 12,
+          "knockback": 180,
+          "hits": 2
+        },
+        "special_1": {
+          "name": "Holo-Clone",
+          "damage": 0,
+          "duration": 4.0,
+          "startup_frames": 10,
+          "active_frames": 240,
+          "recovery_frames": 8,
+          "energy_cost": 30,
+          "effect": "creates_decoy"
+        },
+        "special_2": {
+          "name": "Neural Hack",
+          "damage": 20,
+          "range": 180,
+          "startup_frames": 14,
+          "active_frames": 20,
+          "recovery_frames": 16,
+          "energy_cost": 25,
+          "confuse_duration": 2.5,
+          "target_type": "biological_or_mechanical"
+        },
+        "special_3": {
+          "name": "Overclock",
+          "damage": 0,
+          "duration": 5.0,
+          "startup_frames": 5,
+          "active_frames": 300,
+          "recovery_frames": 30,
+          "energy_cost": 50,
+          "speed_multiplier": 1.6,
+          "crit_bonus": 0.25,
+          "energy_drain_per_second": 8
+        }
+      },
+      "passive": {
+        "name": "Stealth Protocol",
+        "description": "CY-X7 becomes invisible for 1.5 seconds after performing a dash. Attacks from stealth deal 50% bonus damage.",
+        "stealth_duration": 1.5,
+        "stealth_damage_bonus": 0.5
+      }
+    },
+    {
+      "id": "zhyra",
+      "name": "Zhyra Voss",
+      "class": "Psionic",
+      "lore": "A rare human-alien hybrid who manifested psionic abilities at age 12. Hunted by Nexus Corp for her genome, she fights back with the power of her mind.",
+      "sprite": "assets/sprites/zhyra.png",
+      "portrait": "assets/portraits/zhyra.png",
+      "stats": {
+        "hp": 100,
+        "hp_regen": 0.8,
+        "energy": 160,
+        "energy_regen": 4.0,
+        "speed": 210,
+        "run_speed": 330,
+        "jump_force": 560,
+        "jump_count": 2,
+        "weight": 0.95,
+        "attack": 16,
+        "defense": 10,
+        "crit_chance": 0.12,
+        "crit_multiplier": 1.8,
+        "dash_speed": 650,
+        "dash_duration": 0.15,
+        "dash_cooldown": 0.8,
+        "knockback_resistance": 0.15,
+        "psi_power": 100,
+        "psi_regen": 5.0
+      },
+      "attacks": {
+        "light": {
+          "name": "Psi Pulse",
+          "damage": 16,
+          "range": 300,
+          "startup_frames": 5,
+          "active_frames": 20,
+          "recovery_frames": 7,
+          "energy_cost": 5,
+          "knockback": 90,
+          "projectile": true,
+          "projectile_speed": 550
+        },
+        "heavy": {
+          "name": "Mind Crush",
+          "damage": 40,
+          "range": 200,
+          "startup_frames": 14,
+          "active_frames": 16,
+          "recovery_frames": 20,
+          "energy_cost": 20,
+          "knockback": 350,
+          "psi_cost": 20
+        },
+        "special_1": {
+          "name": "Levitate",
+          "damage": 0,
+          "duration": 3.0,
+          "startup_frames": 8,
+          "active_frames": 180,
+          "recovery_frames": 6,
+          "energy_cost": 20,
+          "effect": "float_in_air",
+          "psi_cost": 10
+        },
+        "special_2": {
+          "name": "Psi Storm",
+          "damage": 12,
+          "radius": 200,
+          "duration": 3.0,
+          "startup_frames": 20,
+          "active_frames": 180,
+          "recovery_frames": 24,
+          "energy_cost": 40,
+          "hits_per_second": 4,
+          "psi_cost": 40
+        },
+        "special_3": {
+          "name": "Void Rift",
+          "damage": 65,
+          "radius": 160,
+          "startup_frames": 30,
+          "active_frames": 40,
+          "recovery_frames": 35,
+          "energy_cost": 60,
+          "knockback": 600,
+          "pulls_enemies": true,
+          "pull_duration": 1.0,
+          "psi_cost": 60
+        }
+      },
+      "passive": {
+        "name": "Resonance",
+        "description": "Each psionic attack charges Zhyra's Resonance meter. At full charge, her next attack releases a screen-wide shockwave dealing 80 damage.",
+        "charge_per_hit": 20,
+        "max_charge": 100,
+        "shockwave_damage": 80,
+        "shockwave_radius": 9999
+      }
+    }
+  ]
+}
