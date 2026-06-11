@@ -17,7 +17,7 @@ class DialogueEntry:
 class CutsceneState(GameState):
     def __init__(self, game, entries: list[DialogueEntry],
                  on_complete=None) -> None:
-        self.game = game
+        super().__init__(game)
         self._entries = entries
         self._idx = 0
         self._on_complete = on_complete

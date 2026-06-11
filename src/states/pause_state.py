@@ -7,7 +7,7 @@ from src.ui.menu.pause_menu import PauseMenu
 
 class PauseState(GameState):
     def __init__(self, game, gameplay_state=None) -> None:
-        self.game = game
+        super().__init__(game)
         self._gameplay = gameplay_state
         self._menu = PauseMenu()
 

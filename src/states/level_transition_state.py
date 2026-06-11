@@ -9,7 +9,7 @@ class LevelTransitionState(GameState):
     FADE = 0.5
 
     def __init__(self, game, next_level_id: str) -> None:
-        self.game = game
+        super().__init__(game)
         self._next = next_level_id
         self._t = 0.0
         self._phase = "out"

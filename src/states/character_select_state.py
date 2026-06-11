@@ -7,7 +7,7 @@ from src.ui.menu.character_select import CharacterSelect
 
 class CharacterSelectState(GameState):
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._menu = CharacterSelect()
 
     def handle_event(self, event: pygame.event.Event) -> None:

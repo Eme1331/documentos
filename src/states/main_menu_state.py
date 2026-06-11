@@ -7,7 +7,7 @@ from src.ui.menu.main_menu import MainMenu
 
 class MainMenuState(GameState):
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._menu = MainMenu()
 
     def handle_event(self, event: pygame.event.Event) -> None:

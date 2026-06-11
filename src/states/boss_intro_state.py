@@ -9,7 +9,7 @@ class BossIntroState(GameState):
     DURATION = 2.5
 
     def __init__(self, game, boss_name: str) -> None:
-        self.game = game
+        super().__init__(game)
         self._name = boss_name
         self._t = 0.0
         try:

@@ -9,7 +9,7 @@ OPTIONS = ["RETRY", "QUIT TO MENU"]
 
 class GameOverState(GameState):
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._sel = 0
         try:
             self._font_title = pygame.font.SysFont("consolas", 48, bold=True)

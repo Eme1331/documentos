@@ -11,7 +11,7 @@ class SplashState(GameState):
     FADE_OUT = 1.0
 
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._t = 0.0
         self._phase = "fade_in"
         self._alpha = 0

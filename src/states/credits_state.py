@@ -30,7 +30,7 @@ class CreditsState(GameState):
     SCROLL_SPEED = 40.0
 
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._y = float(settings.SCREEN_HEIGHT)
         try:
             self._font_title = pygame.font.SysFont("consolas", 28, bold=True)

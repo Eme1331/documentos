@@ -11,7 +11,7 @@ import settings
 
 class GameplayState(GameState):
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._time = 0.0
         self._paused = False
 

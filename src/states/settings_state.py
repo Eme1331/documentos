@@ -7,7 +7,7 @@ from src.ui.menu.settings_menu import SettingsMenu
 
 class SettingsState(GameState):
     def __init__(self, game) -> None:
-        self.game = game
+        super().__init__(game)
         self._menu = SettingsMenu(game.config)
 
     def handle_event(self, event: pygame.event.Event) -> None:
