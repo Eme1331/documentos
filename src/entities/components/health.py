@@ -1,6 +1,5 @@
 """Health component."""
 from __future__ import annotations
-
 from dataclasses import dataclass
 
 
@@ -11,8 +10,7 @@ class Health:
     invincibility_frames: int = 0
     iframes_on_hit: int = 30
 
-    def take_damage(self, amount: int) -> int:
-        """Apply damage if not invincible. Returns actual damage dealt."""
+    def take_damage(self, amount: int, source=None) -> int:
         if self.invincibility_frames > 0 or amount <= 0:
             return 0
         dealt = min(self.hp, amount)
