@@ -7,12 +7,21 @@ from pygame.math import Vector2
 
 
 class Camera:
-    def __init__(self, viewport_w: int, viewport_h: int) -> None:
-        self.viewport = Vector2(viewport_w, viewport_h)
-        self.position = Vector2(0, 0)  # top-left world coord
+    def __init__(self, viewport_size: tuple | int, world_size: tuple | None = None,
+                 viewport_h: int = 0) -> None:
+        if isinstance(viewport_size, (tuple, list)):
+            vw, vh = viewport_size
+        else:
+            vw, vh = viewport_size, viewport_h
+        self.viewport = Vector2(vw, vh)
+        if world_size:
+            ww, wh = world_size
+            self.bounds = pygame.Rect(0, 0, ww, wh)
+        else:
+            self.bounds = None
+        self.position = Vector2(0, 0)
         self.target_pos = Vector2(0, 0)
         self.lerp_speed = 8.0
-        self.bounds: pygame.Rect | None = None  # world map bounds
         self._shake_intensity = 0.0
         self._shake_time = 0.0
         self._shake_offset = Vector2(0, 0)
@@ -20,8 +29,18 @@ class Camera:
     def set_bounds(self, rect: pygame.Rect | None) -> None:
         self.bounds = rect
 
-    def follow(self, world_point: Vector2) -> None:
-        self.target_pos = Vector2(world_point) - self.viewport / 2
+    def follow(self, target, dt: float = 0.0) -> None:
+        if isinstance(target, pygame.Rect):
+            world_point = Vector2(target.centerx, target.centery)
+        else:
+            world_point = Vector2(target)
+        self.target_pos = world_point - self.viewport / 2
+        if dt > 0:
+            self.update(dt)
+
+    def apply_point(self, pos: tuple) -> tuple:
+        off = self.offset
+        return (int(pos[0] - off.x), int(pos[1] - off.y))
 
     def snap(self, world_point: Vector2) -> None:
         self.follow(world_point)

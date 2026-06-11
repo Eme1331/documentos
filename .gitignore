@@ -1,1 +1,6 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+saves/
 .claude/

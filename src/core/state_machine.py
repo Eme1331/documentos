@@ -8,7 +8,7 @@ import pygame
 class GameState(ABC):
     """Abstract base for all game states."""
 
-    def __init__(self, game) -> None:
+    def __init__(self, game=None) -> None:
         self.game = game
         self.done = False
 
