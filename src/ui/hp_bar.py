@@ -11,8 +11,8 @@ class HPBar:
         self._drain_speed = 0.4
 
     def update(self, hp: int, max_hp: int, dt: float) -> None:
-        target = hp / max(1, max_hp)
-        self._drain_frac = max(target, self._drain_frac - self._drain_speed * dt)
+        target = min(1.0, hp / max(1, max_hp))
+        self._drain_frac = min(1.0, max(target, self._drain_frac - self._drain_speed * dt))
         self._display_frac = target
 
     def draw(self, surface: pygame.Surface) -> None:
