@@ -13,6 +13,36 @@ class Ethan(BaseCharacter):
                   "width": 32, "height": 48, **stats_data}
         super().__init__(merged)
 
+    def _build_surface(self, w: int, h: int) -> None:
+        s = self._surf
+        c = (0, 180, 255)
+        dark = (0, 60, 120)
+        # Legs with boots
+        pygame.draw.rect(s, (0, 80, 140), (3, h - 18, 10, 18))
+        pygame.draw.rect(s, (0, 80, 140), (w - 13, h - 18, 10, 18))
+        pygame.draw.rect(s, dark, (2, h - 7, 13, 7))
+        pygame.draw.rect(s, dark, (w - 15, h - 7, 13, 7))
+        # Body armor
+        pygame.draw.rect(s, c, (3, h // 3, w - 6, h // 2 + 2), border_radius=3)
+        # Chest plate detail
+        pygame.draw.rect(s, (0, 100, 200), (6, h//3 + 4, w - 12, 8), border_radius=2)
+        pygame.draw.line(s, (100, 220, 255), (w//2, h//3 + 6), (w//2, h//3 + h//2 - 4), 1)
+        # Shoulder pads
+        pygame.draw.rect(s, dark, (0, h // 3, 5, 14), border_radius=2)
+        pygame.draw.rect(s, dark, (w - 5, h // 3, 5, 14), border_radius=2)
+        # Helmet — military style
+        pygame.draw.rect(s, dark, (3, 2, w - 6, h // 3 - 2), border_radius=3)
+        pygame.draw.rect(s, (0, 40, 100), (3, 2, w - 6, 5))
+        # Visor — cyan
+        pygame.draw.rect(s, (0, 220, 255), (6, 7, w - 12, 8), border_radius=2)
+        pygame.draw.line(s, (200, 255, 255), (8, 9), (w - 9, 9), 1)
+        # Plasma rifle on right side
+        pygame.draw.rect(s, (20, 20, 50), (w - 3, h // 3 + 4, 8, 5))
+        pygame.draw.rect(s, (0, 180, 255), (w + 1, h // 3 + 5, 6, 3))
+        # Energy core
+        pygame.draw.circle(s, (0, 255, 255), (w // 2, h // 3 + h // 4), 4)
+        pygame.draw.circle(s, (255, 255, 255), (w // 2, h // 3 + h // 4), 2)
+
     def get_stats(self) -> CharacterStats:
         return self.stats
 

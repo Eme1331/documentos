@@ -12,7 +12,46 @@ class Zhyra(BaseCharacter):
         merged = {"name": "Zhyra", "color": [220, 80, 255],
                   "width": 30, "height": 44, **stats_data}
         super().__init__(merged)
+        self._build_surface(merged.get("width", 30), merged.get("height", 44))
         self._gravity_field_timer = 0.0
+
+    def _build_surface(self, w: int, h: int) -> None:
+        self._surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        s = self._surf
+        c = (220, 80, 255)
+        dark = (80, 20, 110)
+        # Aura glow (outer rings, drawn first)
+        aura = pygame.Surface((w + 8, h + 8), pygame.SRCALPHA)
+        pygame.draw.ellipse(aura, (180, 50, 255, 30), (0, 0, w + 8, h + 8))
+        pygame.draw.ellipse(aura, (220, 80, 255, 20), (2, 2, w + 4, h + 4))
+        s.blit(aura, (-4, -4))
+        # Slender legs
+        pygame.draw.rect(s, dark, (4, h - 15, 8, 15))
+        pygame.draw.rect(s, dark, (w - 12, h - 15, 8, 15))
+        # Glowing feet
+        pygame.draw.ellipse(s, c, (2, h - 6, 10, 6))
+        pygame.draw.ellipse(s, c, (w - 12, h - 6, 10, 6))
+        # Lithe body
+        pygame.draw.rect(s, c, (4, h // 3, w - 8, h // 2), border_radius=4)
+        # Energy lines on body
+        pygame.draw.line(s, (255, 180, 255), (w//2, h//3 + 3), (w//2, h//3 + h//2 - 5), 1)
+        pygame.draw.line(s, (255, 180, 255), (6, h//3 + h//4), (w - 6, h//3 + h//4), 1)
+        # Floating hair / antenna
+        pygame.draw.line(s, c, (w//2, 0), (w//2 - 4, 5), 2)
+        pygame.draw.line(s, c, (w//2, 0), (w//2 + 4, 4), 2)
+        pygame.draw.circle(s, (255, 200, 255), (w//2 - 5, 3), 2)
+        pygame.draw.circle(s, (255, 200, 255), (w//2 + 5, 2), 2)
+        # Alien head — slightly elongated
+        pygame.draw.ellipse(s, dark, (3, 4, w - 6, h // 3 - 3))
+        # Glowing eyes
+        pygame.draw.ellipse(s, (255, 100, 255), (6, 10, 7, 5))
+        pygame.draw.ellipse(s, (255, 100, 255), (w - 13, 10, 7, 5))
+        pygame.draw.circle(s, (255, 255, 255), (9, 12), 2)
+        pygame.draw.circle(s, (255, 255, 255), (w - 10, 12), 2)
+        # Quantum orb on chest
+        pygame.draw.circle(s, (255, 120, 255), (w // 2, h // 3 + h // 4), 5)
+        pygame.draw.circle(s, (255, 255, 255), (w // 2, h // 3 + h // 4), 2)
+        pygame.draw.circle(s, (220, 80, 255), (w // 2, h // 3 + h // 4), 5, 1)
 
     def get_stats(self) -> CharacterStats:
         return self.stats

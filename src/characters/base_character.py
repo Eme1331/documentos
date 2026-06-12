@@ -81,10 +81,42 @@ class BaseCharacter(Entity, ABC):
         self._one_way_rects: list[pygame.Rect] = []
         self._event_bus = None
 
-        color = tuple(stats_data.get("color", [0, 200, 220]))
+        self._char_color = tuple(stats_data.get("color", [0, 200, 220]))
         self._surf = pygame.Surface((w, h), pygame.SRCALPHA)
-        self._surf.fill(color)
+        self._build_surface(w, h)
         self._name = stats_data.get("name", "Player")
+
+    def _build_surface(self, w: int, h: int) -> None:
+        """Draw a generic sci-fi soldier silhouette. Override per character."""
+        c = self._char_color
+        dark = (max(0, c[0]-60), max(0, c[1]-60), max(0, c[2]-60))
+        bright = (min(255, c[0]+80), min(255, c[1]+80), min(255, c[2]+80))
+        s = self._surf
+        # Legs
+        pygame.draw.rect(s, dark, (2, h - 16, 10, 16))
+        pygame.draw.rect(s, dark, (w - 12, h - 16, 10, 16))
+        # Boot detail
+        pygame.draw.rect(s, bright, (2, h - 6, 12, 4))
+        pygame.draw.rect(s, bright, (w - 14, h - 6, 12, 4))
+        # Body
+        pygame.draw.rect(s, c, (4, h // 3, w - 8, h // 2), border_radius=3)
+        # Chest detail lines
+        pygame.draw.line(s, bright, (w//2 - 4, h//3 + 4), (w//2 - 4, h//3 + h//2 - 8), 1)
+        pygame.draw.line(s, bright, (w//2 + 4, h//3 + 4), (w//2 + 4, h//3 + h//2 - 8), 1)
+        # Shoulders
+        pygame.draw.rect(s, c, (0, h // 3, 6, 12), border_radius=2)
+        pygame.draw.rect(s, c, (w - 6, h // 3, 6, 12), border_radius=2)
+        # Helmet
+        hh = h // 3
+        pygame.draw.rect(s, dark, (4, 2, w - 8, hh - 2), border_radius=4)
+        # Visor
+        visor_col = (min(255, c[0]+120), min(255, c[1]+120), min(255, c[2]+40))
+        pygame.draw.rect(s, visor_col, (7, 6, w - 14, hh // 2), border_radius=2)
+        # Visor shine
+        pygame.draw.line(s, (255, 255, 255), (9, 8), (w - 10, 8), 1)
+        # Energy core on chest
+        pygame.draw.circle(s, visor_col, (w // 2, h // 3 + h // 4), 4)
+        pygame.draw.circle(s, (255, 255, 255), (w // 2, h // 3 + h // 4), 2)
 
     def set_event_bus(self, bus) -> None:
         self._event_bus = bus
