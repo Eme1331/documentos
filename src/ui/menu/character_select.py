@@ -23,6 +23,16 @@ class CharacterSelect:
         except Exception:
             self._font_title = self._font_name = self._font_info = None
 
+    def _card_rect(self, i: int) -> pygame.Rect:
+        sw, sh = settings.SCREEN_SIZE
+        card_w, card_h = 260, 340
+        spacing = 40
+        total = len(CHARACTERS) * card_w + (len(CHARACTERS) - 1) * spacing
+        start_x = sw // 2 - total // 2
+        cx = start_x + i * (card_w + spacing)
+        cy = sh // 2 - card_h // 2
+        return pygame.Rect(cx, cy, card_w, card_h)
+
     def handle_event(self, event: pygame.event.Event) -> str | None:
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_LEFT, pygame.K_a):
@@ -33,6 +43,14 @@ class CharacterSelect:
                 return CHARACTERS[self._sel]["id"]
             elif event.key == pygame.K_ESCAPE:
                 return "BACK"
+        elif event.type == pygame.MOUSEMOTION:
+            for i in range(len(CHARACTERS)):
+                if self._card_rect(i).collidepoint(event.pos):
+                    self._sel = i
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for i in range(len(CHARACTERS)):
+                if self._card_rect(i).collidepoint(event.pos):
+                    return CHARACTERS[i]["id"]
         return None
 
     def draw(self, surface: pygame.Surface) -> None:

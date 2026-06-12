@@ -20,7 +20,12 @@ class MainMenu:
         except Exception:
             pass
 
+    def _option_rect(self, i: int, sw: int, sh: int) -> pygame.Rect:
+        y = sh // 2 + i * 44
+        return pygame.Rect(sw // 2 - 140, y - 2, 280, 36)
+
     def handle_event(self, event: pygame.event.Event) -> str | None:
+        sw, sh = settings.SCREEN_SIZE
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_UP, pygame.K_w):
                 self._selected = (self._selected - 1) % len(OPTIONS)
@@ -28,6 +33,14 @@ class MainMenu:
                 self._selected = (self._selected + 1) % len(OPTIONS)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
                 return OPTIONS[self._selected]
+        elif event.type == pygame.MOUSEMOTION:
+            for i in range(len(OPTIONS)):
+                if self._option_rect(i, sw, sh).collidepoint(event.pos):
+                    self._selected = i
+        elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for i in range(len(OPTIONS)):
+                if self._option_rect(i, sw, sh).collidepoint(event.pos):
+                    return OPTIONS[i]
         return None
 
     def draw(self, surface: pygame.Surface) -> None:
