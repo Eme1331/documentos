@@ -72,8 +72,10 @@ class CharacterSelect:
                 surface.blit(cls_lbl, (cx + card_w // 2 - cls_lbl.get_width() // 2, cy + 222))
 
                 y_stat = cy + 250
+                stat_max = {"HP": 150, "Speed": 120, "Power": 100}
                 for stat, val in char["stats"].items():
-                    bar_w = int(val * 1.5)
+                    max_val = stat_max.get(stat, 150)
+                    bar_w = int(min(val, max_val) / max_val * 160)
                     lbl = self._font_info.render(f"{stat}", True, settings.COLOR_GRAY)
                     surface.blit(lbl, (cx + 12, y_stat))
                     pygame.draw.rect(surface, (40, 40, 80), (cx + 80, y_stat + 2, 160, 10), border_radius=3)
