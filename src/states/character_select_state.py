@@ -17,13 +17,8 @@ class CharacterSelectState(GameState):
             self.game.state_machine.change(MainMenuState(self.game))
         elif result and result != "BACK":
             self.game.session["character"] = result
-            try:
-                from src.states.gameplay_state import GameplayState
-                self.game.state_machine.change(GameplayState(self.game))
-            except Exception as exc:
-                import traceback
-                traceback.print_exc()
-                print(f"[ERROR] Failed to load gameplay: {exc}")
+            from src.states.gameplay_state import GameplayState
+            self.game.state_machine.change(GameplayState(self.game))
 
     def draw(self, surface: pygame.Surface) -> None:
         self._menu.draw(surface)

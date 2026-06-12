@@ -30,9 +30,7 @@ class CharacterSelect:
             elif event.key in (pygame.K_RIGHT, pygame.K_d):
                 self._sel = (self._sel + 1) % len(CHARACTERS)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_z):
-                chosen = CHARACTERS[self._sel]["id"]
-                print(f"[SELECT] Character chosen: {chosen}")
-                return chosen
+                return CHARACTERS[self._sel]["id"]
             elif event.key == pygame.K_ESCAPE:
                 return "BACK"
         return None
