@@ -117,6 +117,7 @@ class GameplayState(GameState):
         self._check_enemy_hits()
         self._check_boss_spawn()
         self._check_checkpoints()
+        self._check_door()
 
         # Camera follows player
         from src.entities.components.transform import Transform
@@ -222,6 +223,23 @@ class GameplayState(GameState):
         if col:
             for cp in self.level.checkpoints:
                 cp.check_player(col.rect)
+
+    def _check_door(self) -> None:
+        door = self.level._door
+        if not door:
+            return
+        from src.entities.components.collider import Collider
+        col = self.player.get(Collider)
+        if col and door.check_player(col.rect):
+            self._transition_to_next_level(door.next_level_id)
+
+    def _transition_to_next_level(self, next_level_id: str) -> None:
+        self.fx.flash((0, 200, 255), 255, 0.6)
+        self.game.session["level_id"] = next_level_id
+        # Small delay via level_transition state, then reload gameplay
+        from src.states.level_transition_state import LevelTransitionState
+        self.game.state_machine.change(
+            LevelTransitionState(self.game, next_level_id))
 
     def draw(self, surface: pygame.Surface) -> None:
         surface.fill(settings.COLOR_BG)

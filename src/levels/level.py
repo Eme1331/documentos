@@ -23,8 +23,10 @@ class Level:
 
         self.checkpoints: list = []
         self.secrets: list = []
+        self._door = None
         self._setup_checkpoints(data)
         self._spawn_default_grunts()
+        self._place_exit_door()
 
     def _setup_checkpoints(self, data: dict) -> None:
         from src.levels.checkpoint import Checkpoint
@@ -47,6 +49,16 @@ class Level:
             self.entity_manager.add(grunt, "enemies")
         # Flush immediately so entities are ready before first draw
         self.entity_manager.flush()
+
+    def _place_exit_door(self) -> None:
+        from src.levels.level_door import LevelDoor
+        floor_y = (self.tile_map.height_tiles - 3) * self.tile_map.tile_size
+        # Place door near end of level (left of right wall)
+        door_x = self.tile_map.pixel_width - 3 * self.tile_map.tile_size
+        door_y = floor_y - LevelDoor.H
+        next_id = self.data.get("next_level_id", "level_02")
+        self._door = LevelDoor(float(door_x), float(door_y), next_id, self._event_bus)
+        self.entity_manager.add(self._door, "default")
 
     def update(self, dt: float) -> None:
         self.entity_manager.update(dt)
