@@ -310,9 +310,22 @@ class BaseCharacter(Entity, ABC):
         hp = self.get(Health)
         if hp:
             hp.take_damage(amount, source)
-            self._invincible = 0.5
-            self._hurt_timer = 0.2
+            self._invincible = 0.3
+            self._hurt_timer = 0.15
             self.state = self.HURT
+            # Knockback: empurra o jogador para longe da fonte de dano
+            tr = self.get(Transform)
+            if tr:
+                if source is not None and hasattr(source, "get"):
+                    src_tr = source.get(Transform)
+                    if src_tr:
+                        direction = 1 if tr.position.x >= src_tr.position.x else -1
+                    else:
+                        direction = tr.facing * -1
+                else:
+                    direction = tr.facing * -1
+                tr.velocity.x = 320.0 * direction
+                tr.velocity.y = -220.0
             if self._event_bus:
                 from src.core.event_bus import PlayerDamagedEvent
                 self._event_bus.emit(PlayerDamagedEvent(amount, source, hp.hp))
