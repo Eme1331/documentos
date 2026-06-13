@@ -52,6 +52,7 @@ class GameplayState(GameState):
             col.rect.topleft = (int(spawn[0]), int(spawn[1]))
 
         self.level.entity_manager.add(self.player, "player")
+        self.level.entity_manager.flush()
 
         # Set tile rects on player
         self.player.set_tile_rects(

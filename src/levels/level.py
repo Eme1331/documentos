@@ -38,13 +38,15 @@ class Level:
     def _spawn_default_grunts(self) -> None:
         from src.enemies.grunt import Grunt
         floor_y = (self.tile_map.height_tiles - 3) * self.tile_map.tile_size
-        # Spawn positions spread across the level on the floor
-        spawn_xs = [300, 550, 820, 1100, 1400, 1700, 2000, 2300]
+        tiles = self.tile_map.collision_rects
+        spawn_xs = [200, 400, 650, 920, 1200, 1500, 1800, 2100]
         for sx in spawn_xs:
-            grunt = Grunt(float(sx), float(floor_y - 42),
+            grunt = Grunt(float(sx), float(floor_y - 48),
                           event_bus=self._event_bus,
-                          tile_rects=self.tile_map.collision_rects)
+                          tile_rects=tiles)
             self.entity_manager.add(grunt, "enemies")
+        # Flush immediately so entities are ready before first draw
+        self.entity_manager.flush()
 
     def update(self, dt: float) -> None:
         self.entity_manager.update(dt)
