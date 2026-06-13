@@ -24,6 +24,7 @@ class Level:
         self.checkpoints: list = []
         self.secrets: list = []
         self._setup_checkpoints(data)
+        self._spawn_default_grunts()
 
     def _setup_checkpoints(self, data: dict) -> None:
         from src.levels.checkpoint import Checkpoint
@@ -33,6 +34,17 @@ class Level:
                            self._event_bus)
             self.checkpoints.append(c)
             self.entity_manager.add(c, "default")
+
+    def _spawn_default_grunts(self) -> None:
+        from src.enemies.grunt import Grunt
+        floor_y = (self.tile_map.height_tiles - 3) * self.tile_map.tile_size
+        # Spawn positions spread across the level on the floor
+        spawn_xs = [300, 550, 820, 1100, 1400, 1700, 2000, 2300]
+        for sx in spawn_xs:
+            grunt = Grunt(float(sx), float(floor_y - 42),
+                          event_bus=self._event_bus,
+                          tile_rects=self.tile_map.collision_rects)
+            self.entity_manager.add(grunt, "enemies")
 
     def update(self, dt: float) -> None:
         self.entity_manager.update(dt)

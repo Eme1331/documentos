@@ -105,10 +105,13 @@ class GameplayState(GameState):
 
         self.level.update(effective_dt)
 
-        # Update enemy player references
+        # Update enemy player references and tile rects
         for enemy in self.level.entity_manager.get_all("enemies"):
             if hasattr(enemy, "set_player"):
                 enemy.set_player(self.player)
+            if hasattr(enemy, "set_tile_rects") and not getattr(enemy, "_tiles_set", False):
+                enemy.set_tile_rects(self.level.tile_map.collision_rects)
+                enemy._tiles_set = True
 
         self._check_enemy_hits()
         self._check_boss_spawn()
