@@ -39,7 +39,7 @@ class BaseEnemy(Entity):
 
         w, h = int(stats.get("width", 32)), int(stats.get("height", 48))
         tr = Transform(pygame.math.Vector2(x, y))
-        col = Collider(pygame.Rect(0, 0, w, h))
+        col = Collider(pygame.Rect(int(x), int(y), w, h))
         hp_comp = Health(int(stats.get("hp", 40)), int(stats.get("hp", 40)))
         self.add(tr); self.add(col); self.add(hp_comp)
 
