@@ -154,14 +154,26 @@ class GameplayState(GameState):
     def _check_enemy_hits(self) -> None:
         from src.entities.components.collider import Collider
         from src.entities.components.health import Health
+        from src.entities.components.transform import Transform
         player_col = self.player.get(Collider)
-        if not player_col:
+        player_tr = self.player.get(Transform)
+        if not player_col or not player_tr:
             return
+        pr = player_col.rect
+
         for enemy in list(self.level.entity_manager.get_all("enemies")):
             if not enemy.active:
                 continue
             ecol = enemy.get(Collider)
-            if ecol and player_col.rect.colliderect(ecol.rect):
+            etr = enemy.get(Transform)
+            if not ecol or not etr:
+                continue
+            er = ecol.rect
+            # Check using both rect overlap and center distance (more robust)
+            rects_overlap = pr.colliderect(er)
+            dist = player_tr.position.distance_to(etr.position)
+            hitbox_sum = (pr.width + er.width) * 0.6
+            if rects_overlap or dist < hitbox_sum:
                 self.player.take_damage(10, enemy)
             # Check player projectiles hitting enemies
         for proj in list(self.level.entity_manager.get_all("projectiles")):

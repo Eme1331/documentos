@@ -67,7 +67,7 @@ class CYX7(BaseCharacter):
 
     def update(self, dt: float) -> None:
         super().update(dt)
-        # Armor regen
+        # Armor regen — only when not in active combat (regen timer is long: 8s)
         if not self._armor_intact:
             self._armor_regen_timer -= dt
             if self._armor_regen_timer <= 0:
@@ -87,7 +87,9 @@ class CYX7(BaseCharacter):
     def take_damage(self, amount: int, source=None) -> None:
         if self._armor_intact:
             self._armor_intact = False
-            self._armor_regen_timer = 3.0
+            self._armor_regen_timer = 8.0
+            # Absorb but still apply brief invincibility so next hit deals damage
+            self._invincible = 0.1
             return
         super().take_damage(amount, source)
 
