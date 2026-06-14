@@ -11,11 +11,10 @@ class Health:
     iframes_on_hit: int = 30
 
     def take_damage(self, amount: int, source=None) -> int:
-        if self.invincibility_frames > 0 or amount <= 0:
+        if amount <= 0:
             return 0
         dealt = min(self.hp, amount)
         self.hp -= dealt
-        self.invincibility_frames = self.iframes_on_hit
         return dealt
 
     def heal(self, amount: int) -> None:
