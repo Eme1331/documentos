@@ -309,7 +309,9 @@ class BaseCharacter(Entity, ABC):
             return
         hp = self.get(Health)
         if hp:
+            before = hp.hp
             hp.take_damage(amount, source)
+            print(f"[DMG] -{amount}  hp: {before} -> {hp.hp}")
             self._invincible = 0.3
             self._hurt_timer = 0.15
             self.state = self.HURT
