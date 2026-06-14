@@ -156,24 +156,16 @@ class GameplayState(GameState):
         from src.entities.components.health import Health
         from src.entities.components.transform import Transform
         player_col = self.player.get(Collider)
-        player_tr = self.player.get(Transform)
-        if not player_col or not player_tr:
+        if not player_col:
             return
-        pr = player_col.rect
+        # Expand player rect by 16px on each side for contact detection
+        hit_zone = player_col.rect.inflate(32, 16)
 
         for enemy in list(self.level.entity_manager.get_all("enemies")):
             if not enemy.active:
                 continue
             ecol = enemy.get(Collider)
-            etr = enemy.get(Transform)
-            if not ecol or not etr:
-                continue
-            er = ecol.rect
-            # Check using both rect overlap and center distance (more robust)
-            rects_overlap = pr.colliderect(er)
-            dist = player_tr.position.distance_to(etr.position)
-            hitbox_sum = (pr.width + er.width) * 0.6
-            if rects_overlap or dist < hitbox_sum:
+            if ecol and hit_zone.colliderect(ecol.rect):
                 self.player.take_damage(10, enemy)
             # Check player projectiles hitting enemies
         for proj in list(self.level.entity_manager.get_all("projectiles")):

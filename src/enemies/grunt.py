@@ -81,7 +81,7 @@ class Grunt(BaseEnemy):
     _BASE_STATS = {
         "type": "grunt", "hp": 35, "speed": 75,
         "patrol_dist": 120, "aggro_range": 220,
-        "attack_range": 40, "attack_rate": 1.2,
+        "attack_range": 28, "attack_rate": 1.2,
         "xp_value": 12, "width": 36, "height": 40,
     }
 
@@ -125,18 +125,21 @@ class Grunt(BaseEnemy):
         elif self.state == self.CHASE:
             if dist > self.aggro_range * 1.5:
                 self.state = self.PATROL
-            elif dist < self.attack_range:
-                self.state = self.ATTACK
-                tr.velocity.x = 0
             else:
+                # Keep walking toward player — damage happens on contact
                 ptr = self._player_ref.get(Transform) if self._player_ref else None
                 if ptr:
                     sign = 1 if ptr.position.x > tr.position.x else -1
                     tr.velocity.x = self.speed * 1.4 * sign
+                    self._patrol_dir = sign
 
         elif self.state == self.ATTACK:
-            tr.velocity.x = 0
-            if dist > self.attack_range * 1.5:
+            # Also walk into player in ATTACK state
+            ptr = self._player_ref.get(Transform) if self._player_ref else None
+            if ptr:
+                sign = 1 if ptr.position.x > tr.position.x else -1
+                tr.velocity.x = self.speed * 0.5 * sign
+            if dist > self.attack_range * 2:
                 self.state = self.CHASE
             # damage dealt by gameplay_state collision check
 
