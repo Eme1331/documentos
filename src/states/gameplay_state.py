@@ -155,18 +155,21 @@ class GameplayState(GameState):
         from src.entities.components.collider import Collider
         from src.entities.components.health import Health
         from src.entities.components.transform import Transform
+        player_tr = self.player.get(Transform)
         player_col = self.player.get(Collider)
-        if not player_col:
+        if not player_tr:
             return
-        # Expand player rect by 16px on each side for contact detection
-        hit_zone = player_col.rect.inflate(32, 16)
 
         for enemy in list(self.level.entity_manager.get_all("enemies")):
             if not enemy.active:
                 continue
+            etr = enemy.get(Transform)
             ecol = enemy.get(Collider)
-            if ecol and hit_zone.colliderect(ecol.rect):
-                self.player.take_damage(10, enemy)
+            if etr:
+                dx = abs(player_tr.position.x - etr.position.x)
+                dy = abs(player_tr.position.y - etr.position.y)
+                if dx < 60 and dy < 60:
+                    self.player.take_damage(10, enemy)
             # Check player projectiles hitting enemies
         for proj in list(self.level.entity_manager.get_all("projectiles")):
             if not proj.active or not proj.has_tag("player"):
