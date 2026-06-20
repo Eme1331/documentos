@@ -169,7 +169,6 @@ class GameplayState(GameState):
                 dx = abs(player_tr.position.x - etr.position.x)
                 dy = abs(player_tr.position.y - etr.position.y)
                 if dx < 55 and dy < 60:
-                    print(f"[CONTACT] dx={dx:.0f} dy={dy:.0f}")
                     self.player.take_damage(10, enemy)
             # Check player projectiles hitting enemies
         for proj in list(self.level.entity_manager.get_all("projectiles")):
