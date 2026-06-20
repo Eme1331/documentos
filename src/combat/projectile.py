@@ -39,26 +39,31 @@ class Projectile(Entity):
         if self._gravity:
             tr.velocity.y += self._gravity * dt
 
-        col.rect.x += int(tr.velocity.x * dt)
+        # Move X
+        tr.position.x += tr.velocity.x * dt
+        col.rect.x = int(tr.position.x)
         for tile in self._tile_rects:
             if col.rect.colliderect(tile):
-                col.rect.left = tile.right if tr.velocity.x < 0 else col.rect.left
-                col.rect.right = tile.left if tr.velocity.x > 0 else col.rect.right
+                if tr.velocity.x > 0:
+                    col.rect.right = tile.left
+                else:
+                    col.rect.left = tile.right
+                tr.position.x = float(col.rect.x)
                 tr.velocity.x = 0
 
-        col.rect.y += int(tr.velocity.y * dt)
+        # Move Y
+        tr.position.y += tr.velocity.y * dt
+        col.rect.y = int(tr.position.y)
         for tile in self._tile_rects:
             if col.rect.colliderect(tile):
                 if tr.velocity.y > 0:
                     col.rect.bottom = tile.top
-                    # On landing: detonate (deactivate after brief pause)
+                    tr.position.y = float(col.rect.y)
                     self.active = False
                 elif tr.velocity.y < 0:
                     col.rect.top = tile.bottom
+                    tr.position.y = float(col.rect.y)
                 tr.velocity.y = 0
-
-        tr.position.x = float(col.rect.x)
-        tr.position.y = float(col.rect.y)
 
         self._elapsed += dt
         if self._elapsed >= self.lifetime:
