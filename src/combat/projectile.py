@@ -11,7 +11,7 @@ class Projectile(Entity):
                  damage: int, owner_tag: str = "player",
                  color=(0, 255, 231), size=(8, 8),
                  lifetime: float = 3.0, can_pierce: bool = False,
-                 gravity: float = 0.0) -> None:
+                 gravity: float = 0.0, tile_rects: list | None = None) -> None:
         super().__init__()
         self.layer = "projectiles"
         self.add_tag("projectile")
@@ -28,16 +28,37 @@ class Projectile(Entity):
         self._elapsed = 0.0
         self._color = color
         self._gravity = gravity
+        self._tile_rects = tile_rects or []
         self._surf = pygame.Surface(size, pygame.SRCALPHA)
         self._surf.fill(color)
 
     def update(self, dt: float) -> None:
         tr = self.get(Transform)
+        col = self.get(Collider)
+
         if self._gravity:
             tr.velocity.y += self._gravity * dt
-        tr.position += tr.velocity * dt
-        col = self.get(Collider)
-        col.rect.topleft = (int(tr.position.x), int(tr.position.y))
+
+        col.rect.x += int(tr.velocity.x * dt)
+        for tile in self._tile_rects:
+            if col.rect.colliderect(tile):
+                col.rect.left = tile.right if tr.velocity.x < 0 else col.rect.left
+                col.rect.right = tile.left if tr.velocity.x > 0 else col.rect.right
+                tr.velocity.x = 0
+
+        col.rect.y += int(tr.velocity.y * dt)
+        for tile in self._tile_rects:
+            if col.rect.colliderect(tile):
+                if tr.velocity.y > 0:
+                    col.rect.bottom = tile.top
+                    # On landing: detonate (deactivate after brief pause)
+                    self.active = False
+                elif tr.velocity.y < 0:
+                    col.rect.top = tile.bottom
+                tr.velocity.y = 0
+
+        tr.position.x = float(col.rect.x)
+        tr.position.y = float(col.rect.y)
 
         self._elapsed += dt
         if self._elapsed >= self.lifetime:
