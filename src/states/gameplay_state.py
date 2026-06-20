@@ -115,6 +115,7 @@ class GameplayState(GameState):
                 enemy._tiles_set = True
 
         self._check_enemy_hits()
+        self._check_projectile_tiles()
         self._check_boss_spawn()
         self._check_checkpoints()
         self._check_door()
@@ -210,6 +211,29 @@ class GameplayState(GameState):
             # Reset hit flag when not attacking
             for enemy in list(self.level.entity_manager.get_all("enemies")):
                 enemy._hit_this_swing = False
+
+    def _check_projectile_tiles(self) -> None:
+        from src.entities.components.transform import Transform
+        from src.entities.components.collider import Collider
+        tiles = self.level.tile_map.collision_rects
+        for proj in list(self.level.entity_manager.get_all("projectiles")):
+            if not proj.active or not getattr(proj, '_gravity', 0):
+                continue
+            tr = proj.get(Transform)
+            col = proj.get(Collider)
+            if not tr or not col:
+                continue
+            for tile in tiles:
+                if col.rect.colliderect(tile):
+                    if tr.velocity.y > 0:
+                        col.rect.bottom = tile.top
+                        tr.position.y = float(col.rect.y)
+                        proj.active = False
+                    elif tr.velocity.y < 0:
+                        col.rect.top = tile.bottom
+                        tr.position.y = float(col.rect.y)
+                        tr.velocity.y = 0
+                    break
 
     def _check_boss_spawn(self) -> None:
         if self._boss_spawned or not self.level.boss_id:
