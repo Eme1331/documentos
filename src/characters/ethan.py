@@ -162,8 +162,8 @@ class Ethan(BaseCharacter):
         self._special_cds[2] = 5.0
         from src.combat.projectile import Projectile
         p = Projectile(tr.position.x, tr.position.y,
-                       200.0 * tr.facing, -350.0,
+                       240.0 * tr.facing, -200.0,
                        int(50 * self._damage_bonus()),
                        owner_tag="player", color=(255, 200, 0),
-                       size=(12, 12), lifetime=3.0, gravity=600.0)
+                       size=(12, 12), lifetime=2.5, gravity=700.0)
         self._fire_projectile(p)
