@@ -165,5 +165,5 @@ class Ethan(BaseCharacter):
                        200.0 * tr.facing, -350.0,
                        int(50 * self._damage_bonus()),
                        owner_tag="player", color=(255, 200, 0),
-                       size=(12, 12), lifetime=3.0)
+                       size=(12, 12), lifetime=3.0, gravity=600.0)
         self._fire_projectile(p)

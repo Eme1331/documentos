@@ -10,7 +10,8 @@ class Projectile(Entity):
     def __init__(self, x: float, y: float, vx: float, vy: float,
                  damage: int, owner_tag: str = "player",
                  color=(0, 255, 231), size=(8, 8),
-                 lifetime: float = 3.0, can_pierce: bool = False) -> None:
+                 lifetime: float = 3.0, can_pierce: bool = False,
+                 gravity: float = 0.0) -> None:
         super().__init__()
         self.layer = "projectiles"
         self.add_tag("projectile")
@@ -26,11 +27,14 @@ class Projectile(Entity):
         self.lifetime = lifetime
         self._elapsed = 0.0
         self._color = color
+        self._gravity = gravity
         self._surf = pygame.Surface(size, pygame.SRCALPHA)
         self._surf.fill(color)
 
     def update(self, dt: float) -> None:
         tr = self.get(Transform)
+        if self._gravity:
+            tr.velocity.y += self._gravity * dt
         tr.position += tr.velocity * dt
         col = self.get(Collider)
         col.rect.topleft = (int(tr.position.x), int(tr.position.y))
