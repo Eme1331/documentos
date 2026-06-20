@@ -191,6 +191,26 @@ class GameplayState(GameState):
                     if not proj.can_pierce:
                         proj.active = False
 
+        # Player melee attack hits enemies
+        atk_rect = getattr(self.player, '_attack_rect', None)
+        atk_dmg = getattr(self.player, 'attack_damage', 0)
+        if atk_rect and atk_dmg > 0:
+            for enemy in list(self.level.entity_manager.get_all("enemies")):
+                if not enemy.active:
+                    continue
+                ecol = enemy.get(Collider)
+                if ecol and atk_rect.colliderect(ecol.rect):
+                    ehp = enemy.get(Health)
+                    if ehp and not getattr(enemy, '_hit_this_swing', False):
+                        ehp.take_damage(atk_dmg)
+                        enemy._hit_this_swing = True
+                        self.particles.burst(ecol.rect.centerx, ecol.rect.centery,
+                                             count=10, color_start=(0,200,255), color_end=(255,255,255))
+        else:
+            # Reset hit flag when not attacking
+            for enemy in list(self.level.entity_manager.get_all("enemies")):
+                enemy._hit_this_swing = False
+
     def _check_boss_spawn(self) -> None:
         if self._boss_spawned or not self.level.boss_id:
             return

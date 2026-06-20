@@ -12,6 +12,52 @@ class Ethan(BaseCharacter):
         merged = {"name": "Ethan Nova", "color": [0, 180, 255],
                   "width": 32, "height": 48, **stats_data}
         super().__init__(merged)
+        self._attack_rect: pygame.Rect | None = None
+
+    def update(self, dt: float) -> None:
+        super().update(dt)
+        from src.entities.components.transform import Transform
+        from src.entities.components.collider import Collider
+        tr = self.get(Transform)
+        col = self.get(Collider)
+        if col and tr:
+            if self.state == self.ATTACK_LIGHT and self._state_timer > 0.1:
+                rw, rh = 44, 36
+                rx = col.rect.right if tr.facing == 1 else col.rect.left - rw
+                ry = col.rect.centery - rh // 2
+                self._attack_rect = pygame.Rect(rx, ry, rw, rh)
+            elif self.state == self.ATTACK_HEAVY and self._state_timer > 0.15:
+                rw, rh = 56, 44
+                rx = col.rect.right if tr.facing == 1 else col.rect.left - rw
+                ry = col.rect.centery - rh // 2
+                self._attack_rect = pygame.Rect(rx, ry, rw, rh)
+            else:
+                self._attack_rect = None
+        else:
+            self._attack_rect = None
+
+    @property
+    def attack_damage(self) -> int:
+        if self.state == self.ATTACK_LIGHT:
+            return 15
+        if self.state == self.ATTACK_HEAVY:
+            return 30
+        return 0
+
+    def draw(self, surface: pygame.Surface, camera=None) -> None:
+        super().draw(surface, camera)
+        if self._attack_rect and self.state in (self.ATTACK_LIGHT, self.ATTACK_HEAVY):
+            tr = self.get(__import__("src.entities.components.transform",
+                                      fromlist=["Transform"]).Transform)
+            if tr:
+                pos = (int(self._attack_rect.x), int(self._attack_rect.y))
+                if camera:
+                    pos = camera.apply_point(pos)
+                slash = pygame.Surface((self._attack_rect.w, self._attack_rect.h), pygame.SRCALPHA)
+                slash.fill((0, 220, 255, 100))
+                surface.blit(slash, pos)
+                pygame.draw.rect(surface, (0, 255, 255),
+                                  (*pos, self._attack_rect.w, self._attack_rect.h), 2)
 
     def _build_surface(self, w: int, h: int) -> None:
         s = self._surf
