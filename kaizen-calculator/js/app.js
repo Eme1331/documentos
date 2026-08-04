@@ -52,23 +52,33 @@ function maskPercentFocus(e) {
 const GAIN_DEFS = {
   g1: {
     code: "G1", name: "Redução do Tempo Operacional", icon: "⏱", color: "blue",
-    subtitle: "Economia de mão de obra pela redução do tempo de execução de uma atividade.",
+    subtitle: "Economia de mão de obra pela redução do tempo e/ou da frequência de execução de uma atividade.",
     fields: [
-      { id: "cmo", label: "Custo da Mão de Obra por Hora (CMO)", type: "currency", placeholder: "0,00" },
-      { id: "tempoAntes", label: "Tempo Antes (horas)", type: "number", step: "0.001", min: 0 },
-      { id: "tempoDepois", label: "Tempo Depois (horas)", type: "number", step: "0.001", min: 0 },
-      { id: "freq", label: "Frequência Mensal da Atividade", type: "number", step: "1", min: 0 },
-      { id: "meses", label: "Meses por Ano", type: "number", step: "1", min: 1, max: 12, default: 12 },
+      { id: "cmo", label: "Custo da Mão de Obra por Hora (CMO)", type: "currency", placeholder: "0,00", group: "Parâmetros Gerais" },
+      { id: "meses", label: "Meses por Ano", type: "number", step: "1", min: 1, max: 12, default: 12, group: "Parâmetros Gerais" },
+      { id: "tempoAntes", label: "Tempo Antes (horas)", type: "number", step: "0.001", min: 0, group: "Situação Antes" },
+      { id: "freqAntes", label: "Frequência Antes (execuções/mês)", type: "number", step: "1", min: 0, group: "Situação Antes" },
+      { id: "tempoDepois", label: "Tempo Depois (horas)", type: "number", step: "0.001", min: 0, group: "Situação Depois" },
+      { id: "freqDepois", label: "Frequência Depois (execuções/mês)", type: "number", step: "1", min: 0, group: "Situação Depois" },
     ],
   },
   g2: {
-    code: "G2", name: "Aumento de Produtividade da Máquina", icon: "⚙️", color: "blue",
-    subtitle: "Ganho pelo melhor aproveitamento da capacidade produtiva do equipamento, via Custo Hora Máquina (CHM).",
+    code: "G2", name: "Aumento de Produtividade", icon: "⚙️", color: "blue",
+    subtitle: "Ganho pelo melhor aproveitamento da capacidade produtiva do recurso, via Custo Hora Homem, Máquina ou Processo.",
     fields: [
-      { id: "chm", label: "Custo Hora Máquina (CHM)", type: "currency", placeholder: "0,00" },
+      {
+        id: "costType", label: "Tipo de Custo Considerado", type: "radio", default: "process",
+        options: [
+          { value: "chh", label: "Custo Hora Homem" },
+          { value: "chm", label: "Custo Hora Máquina" },
+          { value: "process", label: "Custo Hora do Processo (Homem + Máquina)", recommended: true },
+        ],
+      },
+      { id: "chh", label: "Custo Hora Homem (CHH)", type: "currency", placeholder: "0,00", visibleFor: ["chh", "process"] },
+      { id: "chm", label: "Custo Hora Máquina (CHM)", type: "currency", placeholder: "0,00", visibleFor: ["chm", "process"] },
       { id: "prodAntes", label: "Produção Antes (peças/mês)", type: "number", step: "1", min: 0 },
       { id: "prodDepois", label: "Produção Depois (peças/mês)", type: "number", step: "1", min: 0 },
-      { id: "horasDisp", label: "Horas Disponíveis da Máquina por Mês", type: "number", step: "0.1", min: 0 },
+      { id: "horasDisp", label: "Horas Disponíveis do Recurso por Mês", type: "number", step: "0.1", min: 0 },
       { id: "meses", label: "Meses por Ano", type: "number", step: "1", min: 1, max: 12, default: 12 },
     ],
   },
@@ -112,6 +122,11 @@ function readGainInputs(gainId) {
   const def = GAIN_DEFS[gainId];
   const values = {};
   for (const f of def.fields) {
+    if (f.type === "radio") {
+      const checked = document.querySelector(`input[name="${gainId}_${f.id}"]:checked`);
+      values[f.id] = checked ? checked.value : f.default;
+      continue;
+    }
     const el = document.getElementById(`${gainId}_${f.id}`);
     if (!el) { values[f.id] = f.default || 0; continue; }
     if (f.type === "currency") values[f.id] = parseCurrencyInput(el.value);
@@ -122,16 +137,18 @@ function readGainInputs(gainId) {
 }
 
 function calcG1(v) {
-  const tempoEconomizado = v.tempoAntes - v.tempoDepois;
-  const horasEconomizadasMes = tempoEconomizado * v.freq;
+  const horasGastasAntes = v.tempoAntes * v.freqAntes;
+  const horasGastasDepois = v.tempoDepois * v.freqDepois;
+  const horasEconomizadasMes = horasGastasAntes - horasGastasDepois;
   const economiaMensal = horasEconomizadasMes * v.cmo;
   const economiaAnual = economiaMensal * (v.meses || 12);
   return {
-    outputs: { tempoEconomizado, horasEconomizadasMes, economiaMensal, economiaAnual },
+    outputs: { horasGastasAntes, horasGastasDepois, horasEconomizadasMes, economiaMensal, economiaAnual },
     annual: economiaAnual,
     steps: [
-      `Tempo economizado por execução = Tempo Antes − Tempo Depois = ${fmtNum(v.tempoAntes,3)} h − ${fmtNum(v.tempoDepois,3)} h = ${fmtNum(tempoEconomizado,3)} h`,
-      `Horas economizadas/mês = Tempo economizado × Frequência Mensal = ${fmtNum(tempoEconomizado,3)} h × ${fmtNum(v.freq,0)} = ${fmtNum(horasEconomizadasMes,2)} h/mês`,
+      `Horas gastas Antes = Tempo Antes × Frequência Antes = ${fmtNum(v.tempoAntes,3)} h × ${fmtNum(v.freqAntes,0)} = ${fmtNum(horasGastasAntes,2)} h/mês`,
+      `Horas gastas Depois = Tempo Depois × Frequência Depois = ${fmtNum(v.tempoDepois,3)} h × ${fmtNum(v.freqDepois,0)} = ${fmtNum(horasGastasDepois,2)} h/mês`,
+      `Horas economizadas/mês = Horas Antes − Horas Depois = ${fmtNum(horasGastasAntes,2)} h − ${fmtNum(horasGastasDepois,2)} h = ${fmtNum(horasEconomizadasMes,2)} h/mês`,
       `Economia mensal = Horas economizadas × CMO/h = ${fmtNum(horasEconomizadasMes,2)} h × ${fmtCurrency(v.cmo)} = ${fmtCurrency(economiaMensal)}`,
       `Economia anual = Economia mensal × ${v.meses || 12} meses = ${fmtCurrency(economiaAnual)}`,
     ],
@@ -139,23 +156,40 @@ function calcG1(v) {
 }
 
 function calcG2(v) {
-  const custoMensalMaquina = v.chm * v.horasDisp;
-  const custoPecaAntes = v.prodAntes > 0 ? custoMensalMaquina / v.prodAntes : 0;
-  const custoPecaDepois = v.prodDepois > 0 ? custoMensalMaquina / v.prodDepois : 0;
+  const steps = [];
+  let custoHora, custoHoraLabel;
+  if (v.costType === "chh") {
+    custoHora = v.chh;
+    custoHoraLabel = "Custo Hora Homem (CHH)";
+  } else if (v.costType === "chm") {
+    custoHora = v.chm;
+    custoHoraLabel = "Custo Hora Máquina (CHM)";
+  } else {
+    custoHora = v.chh + v.chm;
+    custoHoraLabel = "Custo Hora do Processo (CHP)";
+    steps.push(`Custo Hora do Processo = CHH + CHM = ${fmtCurrency(v.chh)} + ${fmtCurrency(v.chm)} = ${fmtCurrency(custoHora)}`);
+  }
+
+  const custoMensalRecurso = custoHora * v.horasDisp;
+  const custoPecaAntes = v.prodAntes > 0 ? custoMensalRecurso / v.prodAntes : 0;
+  const custoPecaDepois = v.prodDepois > 0 ? custoMensalRecurso / v.prodDepois : 0;
   const economiaPorPeca = custoPecaAntes - custoPecaDepois;
   const economiaMensal = economiaPorPeca * v.prodDepois;
   const economiaAnual = economiaMensal * (v.meses || 12);
+
+  steps.push(
+    `Custo mensal do recurso = ${custoHoraLabel} × Horas Disponíveis = ${fmtCurrency(custoHora)} × ${fmtNum(v.horasDisp,1)} h = ${fmtCurrency(custoMensalRecurso)}`,
+    `Custo por peça Antes = Custo Mensal ÷ Produção Antes = ${fmtCurrency(custoMensalRecurso)} ÷ ${fmtNum(v.prodAntes,0)} = ${fmtCurrency(custoPecaAntes)}`,
+    `Custo por peça Depois = Custo Mensal ÷ Produção Depois = ${fmtCurrency(custoMensalRecurso)} ÷ ${fmtNum(v.prodDepois,0)} = ${fmtCurrency(custoPecaDepois)}`,
+    `Economia por peça = Custo Antes − Custo Depois = ${fmtCurrency(custoPecaAntes)} − ${fmtCurrency(custoPecaDepois)} = ${fmtCurrency(economiaPorPeca)}`,
+    `Economia mensal = Economia por peça × Produção Depois = ${fmtCurrency(economiaPorPeca)} × ${fmtNum(v.prodDepois,0)} = ${fmtCurrency(economiaMensal)}`,
+    `Economia anual = Economia mensal × ${v.meses || 12} meses = ${fmtCurrency(economiaAnual)}`,
+  );
+
   return {
-    outputs: { custoMensalMaquina, custoPecaAntes, custoPecaDepois, economiaPorPeca, economiaMensal, economiaAnual },
+    outputs: { custoHora, custoHoraLabel, custoMensalRecurso, custoPecaAntes, custoPecaDepois, economiaPorPeca, economiaMensal, economiaAnual },
     annual: economiaAnual,
-    steps: [
-      `Custo mensal da máquina = CHM × Horas Disponíveis = ${fmtCurrency(v.chm)} × ${fmtNum(v.horasDisp,1)} h = ${fmtCurrency(custoMensalMaquina)}`,
-      `Custo por peça Antes = Custo Mensal ÷ Produção Antes = ${fmtCurrency(custoMensalMaquina)} ÷ ${fmtNum(v.prodAntes,0)} = ${fmtCurrency(custoPecaAntes)}`,
-      `Custo por peça Depois = Custo Mensal ÷ Produção Depois = ${fmtCurrency(custoMensalMaquina)} ÷ ${fmtNum(v.prodDepois,0)} = ${fmtCurrency(custoPecaDepois)}`,
-      `Economia por peça = Custo Antes − Custo Depois = ${fmtCurrency(custoPecaAntes)} − ${fmtCurrency(custoPecaDepois)} = ${fmtCurrency(economiaPorPeca)}`,
-      `Economia mensal = Economia por peça × Produção Depois = ${fmtCurrency(economiaPorPeca)} × ${fmtNum(v.prodDepois,0)} = ${fmtCurrency(economiaMensal)}`,
-      `Economia anual = Economia mensal × ${v.meses || 12} meses = ${fmtCurrency(economiaAnual)}`,
-    ],
+    steps,
   };
 }
 
@@ -235,6 +269,44 @@ function fieldInputHtml(gainId, f) {
   return `<input type="number" id="${id}" step="${f.step || "any"}" min="${f.min ?? ""}" max="${f.max ?? ""}" value="${f.default ?? ""}" data-type="number">`;
 }
 
+function radioFieldHtml(gainId, f) {
+  const opts = f.options.map((opt) => `
+    <label class="radio-option">
+      <input type="radio" name="${gainId}_${f.id}" value="${opt.value}" ${opt.value === f.default ? "checked" : ""}>
+      <span>${opt.label}${opt.recommended ? ' <span class="badge badge-blue">Recomendado</span>' : ""}</span>
+    </label>`).join("");
+  return `
+    <div class="field field-radio" id="fw_${gainId}_${f.id}" style="grid-column:1 / -1">
+      <label>${f.label}</label>
+      <div class="radio-group">${opts}</div>
+    </div>`;
+}
+
+function isFieldVisible(gainId, f) {
+  if (!f.visibleFor) return true;
+  const def = GAIN_DEFS[gainId];
+  const radioField = def.fields.find((x) => x.type === "radio");
+  const checked = radioField && document.querySelector(`input[name="${gainId}_${radioField.id}"]:checked`);
+  const current = checked ? checked.value : radioField?.default;
+  return f.visibleFor.includes(current);
+}
+
+function syncFieldVisibility(gainId) {
+  const def = GAIN_DEFS[gainId];
+  def.fields.forEach((f) => {
+    if (!f.visibleFor) return;
+    const wrap = document.getElementById(`fw_${gainId}_${f.id}`);
+    if (!wrap) return;
+    const visible = isFieldVisible(gainId, f);
+    wrap.style.display = visible ? "" : "none";
+    if (!visible) {
+      wrap.classList.remove("has-error");
+      const el = document.getElementById(`${gainId}_${f.id}`);
+      if (el) el.classList.remove("invalid");
+    }
+  });
+}
+
 function renderForms() {
   const wrap = document.getElementById("formsWrap");
   wrap.innerHTML = "";
@@ -255,6 +327,10 @@ function renderForms() {
       if (groupName !== "__default") fieldsHtml += `<h4 style="margin:14px 0 8px;font-size:13px;color:var(--text-muted)">${groupName}</h4>`;
       fieldsHtml += `<div class="grid grid-4">`;
       fields.forEach((f) => {
+        if (f.type === "radio") {
+          fieldsHtml += radioFieldHtml(gid, f);
+          return;
+        }
         fieldsHtml += `
           <div class="field" id="fw_${gid}_${f.id}">
             <label for="${gid}_${f.id}">${f.label}</label>
@@ -279,6 +355,7 @@ function renderForms() {
     wrap.appendChild(section);
 
     def.fields.forEach((f) => {
+      if (f.type === "radio") return;
       const el = document.getElementById(`${gid}_${f.id}`);
       if (f.type === "currency") el.addEventListener("input", maskCurrencyKeyup);
       if (f.type === "percent") {
@@ -287,6 +364,14 @@ function renderForms() {
       }
       if (f.default) el.value = f.type === "currency" ? "" : f.default;
     });
+
+    const radioField = def.fields.find((f) => f.type === "radio");
+    if (radioField) {
+      document.querySelectorAll(`input[name="${gid}_${radioField.id}"]`).forEach((r) => {
+        r.addEventListener("change", () => syncFieldVisibility(gid));
+      });
+      syncFieldVisibility(gid);
+    }
   });
 }
 
@@ -296,6 +381,8 @@ function validateGain(gainId) {
   const def = GAIN_DEFS[gainId];
   let ok = true;
   def.fields.forEach((f) => {
+    if (f.type === "radio") return;
+    if (!isFieldVisible(gainId, f)) return;
     const wrap = document.getElementById(`fw_${gainId}_${f.id}`);
     const el = document.getElementById(`${gainId}_${f.id}`);
     let val;
@@ -353,6 +440,7 @@ function renderGainMiniResults(gid, result) {
       ["Economia Anual", fmtCurrency(result.outputs.economiaAnual)],
     ],
     g2: [
+      ["Custo Hora Considerado", `${fmtCurrency(result.outputs.custoHora)} (${result.outputs.custoHoraLabel})`],
       ["Custo/peça Antes", fmtCurrency(result.outputs.custoPecaAntes)],
       ["Custo/peça Depois", fmtCurrency(result.outputs.custoPecaDepois)],
       ["Economia por Peça", fmtCurrency(result.outputs.economiaPorPeca)],
@@ -643,6 +731,12 @@ function loadProject(id) {
     const def = GAIN_DEFS[gid];
     const inputs = p.results[gid]?.inputs || {};
     def.fields.forEach((f) => {
+      if (f.type === "radio") {
+        const val = inputs[f.id] || f.default;
+        const radio = document.querySelector(`input[name="${gid}_${f.id}"][value="${val}"]`);
+        if (radio) radio.checked = true;
+        return;
+      }
       const el = document.getElementById(`${gid}_${f.id}`);
       if (!el) return;
       const val = inputs[f.id];
@@ -650,6 +744,7 @@ function loadProject(id) {
       else if (f.type === "percent") el.value = val ? `${fmtNum(val, 1)}%` : "";
       else el.value = val ?? f.default ?? "";
     });
+    syncFieldVisibility(gid);
   });
 
   state.results = p.results;

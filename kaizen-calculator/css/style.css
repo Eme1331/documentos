@@ -122,6 +122,16 @@ body {
 .field .error-msg { font-size:11.5px; color: var(--red); display:none; }
 .field.has-error .error-msg { display:block; }
 
+.field-radio { gap:10px; }
+.radio-group { display:flex; flex-wrap:wrap; gap:10px; }
+.radio-option {
+  display:flex; align-items:center; gap:9px; border:1.5px solid var(--border); border-radius:10px;
+  padding:11px 16px; cursor:pointer; font-size:13.5px; background: var(--surface-alt); transition: all .15s ease;
+}
+.radio-option:hover { border-color: var(--blue); }
+.radio-option:has(input:checked) { border-color: var(--blue); background: rgba(37,99,235,.08); font-weight:600; }
+.radio-option input[type="radio"] { accent-color: var(--blue); width:16px; height:16px; flex-shrink:0; }
+
 /* ---------- Gain selector cards ---------- */
 .gain-cards { margin-bottom: 10px; }
 .gain-card {
