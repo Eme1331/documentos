@@ -935,9 +935,21 @@ function clearAll() {
 const HISTORY_KEY = "kaizen_projects_history";
 
 function getHistory() {
-  try { return JSON.parse(storageGet(HISTORY_KEY)) || []; } catch { return []; }
+  // Drop entries saved by an older, incompatible version of the app (e.g. one that
+  // stored a single "results" object instead of "instances" arrays per gain type),
+  // so stale data left over from a previous version never crashes the history panel.
+  try {
+    const raw = JSON.parse(storageGet(HISTORY_KEY));
+    if (!Array.isArray(raw)) return [];
+    return raw.filter((p) => p && typeof p === "object" && p.instances && typeof p.instances === "object" && !Array.isArray(p.instances));
+  } catch {
+    return [];
+  }
 }
 function setHistory(list) { storageSet(HISTORY_KEY, JSON.stringify(list)); }
+function projInstances(p, gid) {
+  return (p.instances && Array.isArray(p.instances[gid])) ? p.instances[gid] : [];
+}
 
 function saveProject() {
   if (!runCalculation()) return;
@@ -983,8 +995,8 @@ function renderHistoryList() {
     return;
   }
   wrap.innerHTML = storageWarning + list.map((p) => {
-    const total = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).reduce((s2, i) => s2 + (i.result?.annual || 0), 0), 0);
-    const kaizenCount = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).length, 0);
+    const total = GAIN_ORDER.reduce((s, gid) => s + projInstances(p, gid).reduce((s2, i) => s2 + (i.result?.annual || 0), 0), 0);
+    const kaizenCount = GAIN_ORDER.reduce((s, gid) => s + projInstances(p, gid).length, 0);
     return `
       <div class="history-item">
         <div class="hi-name">${p.name}</div>
@@ -1014,13 +1026,13 @@ function loadProject(id) {
   state.active = new Set(p.active);
   state.instances = { g1: [], g2: [], g3: [], g4: [] };
   GAIN_ORDER.forEach((gid) => {
-    state.instances[gid] = (p.instances[gid] || []).map((i) => ({ uid: i.uid }));
+    state.instances[gid] = projInstances(p, gid).map((i) => ({ uid: i.uid }));
   });
   document.getElementById("formsWrap").innerHTML = "";
   renderGainCards();
 
   GAIN_ORDER.forEach((gid) => {
-    (p.instances[gid] || []).forEach((saved, idx) => {
+    projInstances(p, gid).forEach((saved, idx) => {
       const inst = state.instances[gid][idx];
       inst.inputs = saved.inputs;
       inst.result = saved.result;
