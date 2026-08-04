@@ -494,12 +494,24 @@ function validateInstance(gid, uid) {
 
 /* ===================== Calculate & render results ===================== */
 
-function calculateAll() {
+// Validates + computes every active Kaizen instance and renders the dashboard.
+// Returns true on success. Shared by the "Calcular" button and by Salvar/Exportar,
+// which auto-calculate instead of just refusing to run when nothing's been
+// calculated yet.
+function runCalculation() {
+  if (!state.active.size) {
+    showToast("Selecione ao menos um tipo de ganho (G1 a G4) antes de calcular.");
+    return false;
+  }
+
   let allValid = true;
   state.active.forEach((gid) => {
     state.instances[gid].forEach((inst) => { if (!validateInstance(gid, inst.uid)) allValid = false; });
   });
-  if (!allValid) return;
+  if (!allValid) {
+    showToast("Há campos obrigatórios em branco ou inválidos — corrija os campos destacados em vermelho.");
+    return false;
+  }
 
   state.active.forEach((gid) => {
     state.instances[gid].forEach((inst) => {
@@ -516,7 +528,13 @@ function calculateAll() {
   state.calculated = true;
   renderDashboard();
   document.getElementById("dashboard").style.display = "flex";
-  document.getElementById("dashboard").scrollIntoView({ behavior: "smooth", block: "start" });
+  return true;
+}
+
+function calculateAll() {
+  if (runCalculation()) {
+    document.getElementById("dashboard").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 }
 
 function renderInstanceMiniResults(gid, inst) {
@@ -922,7 +940,7 @@ function getHistory() {
 function setHistory(list) { storageSet(HISTORY_KEY, JSON.stringify(list)); }
 
 function saveProject() {
-  if (!state.calculated) { showToast("Calcule os resultados antes de salvar o projeto."); return; }
+  if (!runCalculation()) return;
   const project = {
     id: `proj_${Date.now()}`,
     name: document.getElementById("projName").value || "Projeto Kaizen sem nome",
@@ -1053,7 +1071,7 @@ function closeHistoryPanel() {
 /* ===================== Export: PDF / Excel / Print ===================== */
 
 async function exportPdf() {
-  if (!state.calculated) { showToast("Calcule os resultados antes de exportar."); return; }
+  if (!runCalculation()) return;
   const { jsPDF } = window.jspdf;
   const reportEl = document.getElementById("reportArea");
   const canvas = await html2canvas(reportEl, { scale: 1.5, backgroundColor: "#ffffff" });
@@ -1082,7 +1100,7 @@ async function exportPdf() {
 }
 
 function exportExcel() {
-  if (!state.calculated) { showToast("Calcule os resultados antes de exportar."); return; }
+  if (!runCalculation()) return;
   const wb = XLSX.utils.book_new();
 
   const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + sumGidAnnual(g), 0);
