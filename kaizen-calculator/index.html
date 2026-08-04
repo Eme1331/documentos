@@ -231,5 +231,15 @@
 <script src="js/vendor/jspdf.umd.min.js"></script>
 <script src="js/vendor/html2canvas.min.js"></script>
 <script src="js/app.js"></script>
+<script>
+  // Enables offline use once installed. Service workers require a secure context
+  // (http/https), so this is a silent no-op when the file is opened directly via
+  // file:// — that path still works fully online, it just can't cache for offline.
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("service-worker.js").catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
