@@ -823,7 +823,7 @@ function toggleTheme() {
 function updateThemeButton() {
   const current = document.documentElement.getAttribute("data-theme") ||
     (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-  document.getElementById("themeToggle").textContent = current === "dark" ? "☀️ Tema" : "🌙 Tema";
+  document.querySelector("#themeToggle .btn-icon").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
 /* ===================== Clear ===================== */

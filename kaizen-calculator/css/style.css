@@ -62,19 +62,29 @@ body {
 
 /* ---------- Topbar ---------- */
 .topbar {
-  display:flex; align-items:center; justify-content:space-between;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
   padding: 14px 24px; background: linear-gradient(135deg, var(--blue), var(--blue-dark));
   color: #fff; box-shadow: var(--shadow-lg); position: sticky; top:0; z-index: 20;
 }
-.topbar-brand { display:flex; align-items:center; gap:12px; }
+.topbar-brand { display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 220px; }
 .brand-mark {
   width:42px; height:42px; border-radius:12px; background: rgba(255,255,255,.18);
   display:flex; align-items:center; justify-content:center; font-weight:800; font-size:20px;
-  border: 1px solid rgba(255,255,255,.3);
+  border: 1px solid rgba(255,255,255,.3); flex-shrink:0;
 }
+.brand-text { min-width:0; }
 .brand-text h1 { font-size: 17px; margin:0; font-weight:700; }
 .brand-text p { margin:2px 0 0; font-size:12px; opacity:.85; }
-.topbar-actions { display:flex; gap:10px; }
+.topbar-actions { display:flex; gap:10px; flex-shrink:0; }
+
+@media (max-width: 560px) {
+  .topbar { padding: 12px 16px; }
+  .brand-text p { display:none; }
+  .brand-text h1 { font-size: 14.5px; }
+  .brand-mark { width:34px; height:34px; font-size:16px; }
+  .topbar-actions .btn { padding: 9px 10px; }
+  .topbar-actions .btn-label { display:none; }
+}
 
 /* ---------- Buttons ---------- */
 .btn {
@@ -151,7 +161,7 @@ body {
   color:#fff; font-size:11px; font-weight:700; display:none; align-items:center; justify-content:center; flex-shrink:0;
 }
 .gain-count-badge:not(:empty) { display:flex; }
-.gain-quick-actions { display:flex; gap:10px; margin-top: 8px; }
+.gain-quick-actions { display:flex; flex-wrap:wrap; gap:10px; margin-top: 8px; }
 
 /* ---------- Forms: one section per gain type, N instances each ---------- */
 .gain-type-section { margin-top: 18px; }
@@ -227,7 +237,7 @@ body {
 
 /* ---------- History panel ---------- */
 .history-panel {
-  position: fixed; top:0; right:-380px; width: 360px; height:100vh; background: var(--surface);
+  position: fixed; top:0; right:-100%; width: min(360px, 100vw); height:100vh; height:100dvh; background: var(--surface);
   border-left:1px solid var(--border); box-shadow: var(--shadow-lg); z-index:50; transition: right .25s ease;
   display:flex; flex-direction:column;
 }
