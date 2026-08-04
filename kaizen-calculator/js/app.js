@@ -47,6 +47,15 @@ function maskPercentFocus(e) {
   e.target.value = v ? String(v).replace(".", ",") : "";
 }
 
+function addMonthsApprox(dateStr, months) {
+  const d = new Date(dateStr + "T00:00:00");
+  const whole = Math.floor(months);
+  const fracDays = Math.round((months - whole) * 30.44);
+  d.setMonth(d.getMonth() + whole);
+  d.setDate(d.getDate() + fracDays);
+  return d;
+}
+
 /* ===================== Gain definitions ===================== */
 
 const GAIN_DEFS = {
@@ -109,25 +118,28 @@ const GAIN_DEFS = {
 const GAIN_ORDER = ["g1", "g2", "g3", "g4"];
 
 /* ===================== Application state ===================== */
+// state.instances[gid] is an array of Kaizen instances for that gain type:
+// { uid, name, inputs, result }. Multiple instances per type are supported.
 
 const state = {
-  selected: new Set(),
-  results: {},   // gainId -> {outputs, annual, steps, inputs}
+  active: new Set(),
+  instances: { g1: [], g2: [], g3: [], g4: [] },
   calculated: false,
 };
+let instanceCounter = 1;
 
 /* ===================== Calculation engine ===================== */
 
-function readGainInputs(gainId) {
-  const def = GAIN_DEFS[gainId];
+function readInstanceInputs(gid, uid) {
+  const def = GAIN_DEFS[gid];
   const values = {};
   for (const f of def.fields) {
     if (f.type === "radio") {
-      const checked = document.querySelector(`input[name="${gainId}_${f.id}"]:checked`);
+      const checked = document.querySelector(`input[name="${gid}_${uid}_${f.id}"]:checked`);
       values[f.id] = checked ? checked.value : f.default;
       continue;
     }
-    const el = document.getElementById(`${gainId}_${f.id}`);
+    const el = document.getElementById(`${gid}_${uid}_${f.id}`);
     if (!el) { values[f.id] = f.default || 0; continue; }
     if (f.type === "currency") values[f.id] = parseCurrencyInput(el.value);
     else if (f.type === "percent") values[f.id] = parsePercentInput(el.value);
@@ -231,35 +243,38 @@ function calcG4(v) {
 
 const CALCULATORS = { g1: calcG1, g2: calcG2, g3: calcG3, g4: calcG4 };
 
-/* ===================== Rendering: gain cards ===================== */
+/* ===================== Rendering: gain type cards ===================== */
 
 function renderGainCards() {
   document.querySelectorAll(".gain-card").forEach((card) => {
     const gid = card.dataset.gain;
-    card.classList.toggle("selected", state.selected.has(gid));
+    card.classList.toggle("selected", state.active.has(gid));
+    const badge = card.querySelector(".gain-count-badge");
+    const count = state.instances[gid].length;
+    badge.textContent = state.active.has(gid) && count > 1 ? String(count) : "";
   });
   renderForms();
   updateActionbarVisibility();
 }
 
 function toggleGain(gid) {
-  if (state.selected.has(gid)) state.selected.delete(gid);
-  else state.selected.add(gid);
+  if (state.active.has(gid)) state.active.delete(gid);
+  else state.active.add(gid);
   renderGainCards();
 }
 
 function updateActionbarVisibility() {
-  document.getElementById("actionbar").style.display = state.selected.size ? "flex" : "none";
-  if (!state.selected.size) {
+  document.getElementById("actionbar").style.display = state.active.size ? "flex" : "none";
+  if (!state.active.size) {
     document.getElementById("dashboard").style.display = "none";
     state.calculated = false;
   }
 }
 
-/* ===================== Rendering: dynamic forms ===================== */
+/* ===================== Rendering: dynamic forms (N instances per gain type) ===================== */
 
-function fieldInputHtml(gainId, f) {
-  const id = `${gainId}_${f.id}`;
+function fieldInputHtml(gid, uid, f) {
+  const id = `${gid}_${uid}_${f.id}`;
   if (f.type === "currency") {
     return `<input type="text" inputmode="decimal" id="${id}" placeholder="${f.placeholder || "0,00"}" data-type="currency">`;
   }
@@ -269,141 +284,208 @@ function fieldInputHtml(gainId, f) {
   return `<input type="number" id="${id}" step="${f.step || "any"}" min="${f.min ?? ""}" max="${f.max ?? ""}" value="${f.default ?? ""}" data-type="number">`;
 }
 
-function radioFieldHtml(gainId, f) {
+function radioFieldHtml(gid, uid, f) {
   const opts = f.options.map((opt) => `
     <label class="radio-option">
-      <input type="radio" name="${gainId}_${f.id}" value="${opt.value}" ${opt.value === f.default ? "checked" : ""}>
+      <input type="radio" name="${gid}_${uid}_${f.id}" value="${opt.value}" ${opt.value === f.default ? "checked" : ""}>
       <span>${opt.label}${opt.recommended ? ' <span class="badge badge-blue">Recomendado</span>' : ""}</span>
     </label>`).join("");
   return `
-    <div class="field field-radio" id="fw_${gainId}_${f.id}" style="grid-column:1 / -1">
+    <div class="field field-radio" id="fw_${gid}_${uid}_${f.id}" style="grid-column:1 / -1">
       <label>${f.label}</label>
       <div class="radio-group">${opts}</div>
     </div>`;
 }
 
-function isFieldVisible(gainId, f) {
+function isFieldVisible(gid, uid, f) {
   if (!f.visibleFor) return true;
-  const def = GAIN_DEFS[gainId];
+  const def = GAIN_DEFS[gid];
   const radioField = def.fields.find((x) => x.type === "radio");
-  const checked = radioField && document.querySelector(`input[name="${gainId}_${radioField.id}"]:checked`);
+  const checked = radioField && document.querySelector(`input[name="${gid}_${uid}_${radioField.id}"]:checked`);
   const current = checked ? checked.value : radioField?.default;
   return f.visibleFor.includes(current);
 }
 
-function syncFieldVisibility(gainId) {
-  const def = GAIN_DEFS[gainId];
+function syncFieldVisibility(gid, uid) {
+  const def = GAIN_DEFS[gid];
   def.fields.forEach((f) => {
     if (!f.visibleFor) return;
-    const wrap = document.getElementById(`fw_${gainId}_${f.id}`);
+    const wrap = document.getElementById(`fw_${gid}_${uid}_${f.id}`);
     if (!wrap) return;
-    const visible = isFieldVisible(gainId, f);
+    const visible = isFieldVisible(gid, uid, f);
     wrap.style.display = visible ? "" : "none";
     if (!visible) {
       wrap.classList.remove("has-error");
-      const el = document.getElementById(`${gainId}_${f.id}`);
+      const el = document.getElementById(`${gid}_${uid}_${f.id}`);
       if (el) el.classList.remove("invalid");
     }
   });
 }
 
+function refreshInstanceNumbers(gid) {
+  const def = GAIN_DEFS[gid];
+  const container = document.getElementById(`instances_${gid}`);
+  if (!container) return;
+  Array.from(container.children).forEach((card, idx) => {
+    const numEl = card.querySelector(".instance-number");
+    if (numEl) numEl.textContent = `${def.code} · Kaizen #${idx + 1}`;
+  });
+}
+
+function renderInstanceForm(gid, inst) {
+  const def = GAIN_DEFS[gid];
+  const container = document.getElementById(`instances_${gid}`);
+  const card = document.createElement("div");
+  card.className = `instance-card ${gid}`;
+  card.id = `block_${gid}_${inst.uid}`;
+
+  const groups = {};
+  def.fields.forEach((f) => {
+    const g = f.group || "__default";
+    (groups[g] = groups[g] || []).push(f);
+  });
+
+  let fieldsHtml = "";
+  Object.entries(groups).forEach(([groupName, fields]) => {
+    if (groupName !== "__default") fieldsHtml += `<h4 style="margin:14px 0 8px;font-size:13px;color:var(--text-muted)">${groupName}</h4>`;
+    fieldsHtml += `<div class="grid grid-4">`;
+    fields.forEach((f) => {
+      if (f.type === "radio") { fieldsHtml += radioFieldHtml(gid, inst.uid, f); return; }
+      fieldsHtml += `
+        <div class="field" id="fw_${gid}_${inst.uid}_${f.id}">
+          <label for="${gid}_${inst.uid}_${f.id}">${f.label}</label>
+          ${fieldInputHtml(gid, inst.uid, f)}
+          <span class="error-msg">Informe um valor válido.</span>
+        </div>`;
+    });
+    fieldsHtml += `</div>`;
+  });
+
+  card.innerHTML = `
+    <div class="instance-header">
+      <span class="instance-number">${def.code} · Kaizen</span>
+      <div class="field">
+        <label for="${gid}_${inst.uid}_name">Nome do Kaizen (opcional)</label>
+        <input type="text" id="${gid}_${inst.uid}_name" placeholder="Ex.: Troca de ferramenta - Prensa 3">
+      </div>
+      <button type="button" class="remove-instance-btn" title="Remover este Kaizen">🗑</button>
+    </div>
+    ${fieldsHtml}
+    <div class="gain-results grid grid-4" id="results_${gid}_${inst.uid}"></div>
+  `;
+  container.appendChild(card);
+
+  def.fields.forEach((f) => {
+    if (f.type === "radio") return;
+    const el = document.getElementById(`${gid}_${inst.uid}_${f.id}`);
+    if (f.type === "currency") el.addEventListener("input", maskCurrencyKeyup);
+    if (f.type === "percent") {
+      el.addEventListener("focus", maskPercentFocus);
+      el.addEventListener("blur", maskPercentBlur);
+    }
+    if (f.default) el.value = f.type === "currency" ? "" : f.default;
+  });
+
+  const radioField = def.fields.find((f) => f.type === "radio");
+  if (radioField) {
+    document.querySelectorAll(`input[name="${gid}_${inst.uid}_${radioField.id}"]`).forEach((r) => {
+      r.addEventListener("change", () => syncFieldVisibility(gid, inst.uid));
+    });
+    syncFieldVisibility(gid, inst.uid);
+  }
+
+  card.querySelector(".remove-instance-btn").addEventListener("click", () => removeInstance(gid, inst.uid));
+  refreshInstanceNumbers(gid);
+}
+
+function addInstance(gid) {
+  const inst = { uid: `i${instanceCounter++}` };
+  state.instances[gid].push(inst);
+  renderInstanceForm(gid, inst);
+  const badge = document.querySelector(`.gain-count-badge[data-count-for="${gid}"]`);
+  if (badge) badge.textContent = state.instances[gid].length > 1 ? String(state.instances[gid].length) : "";
+  return inst;
+}
+
+function removeInstance(gid, uid) {
+  state.instances[gid] = state.instances[gid].filter((i) => i.uid !== uid);
+  const el = document.getElementById(`block_${gid}_${uid}`);
+  if (el) el.remove();
+  refreshInstanceNumbers(gid);
+  const badge = document.querySelector(`.gain-count-badge[data-count-for="${gid}"]`);
+  if (badge) badge.textContent = state.instances[gid].length > 1 ? String(state.instances[gid].length) : "";
+}
+
+function buildGainTypeSection(gid) {
+  const def = GAIN_DEFS[gid];
+  const section = document.createElement("section");
+  section.className = "gain-type-section";
+  section.dataset.gain = gid;
+  section.innerHTML = `
+    <div class="gain-type-header">
+      <span class="gain-icon" style="background:${def.color === "blue" ? "#2563EB1a" : "#16A34A1a"};color:${def.color === "blue" ? "#2563EB" : "#16A34A"}">${def.icon}</span>
+      <div>
+        <h3>${def.code} — ${def.name}</h3>
+        <p>${def.subtitle}</p>
+      </div>
+      <button type="button" class="btn btn-secondary add-instance-btn">+ Adicionar Kaizen ${def.code}</button>
+    </div>
+    <div class="gain-instances" id="instances_${gid}"></div>
+  `;
+  section.querySelector(".add-instance-btn").addEventListener("click", () => addInstance(gid));
+  return section;
+}
+
 function renderForms() {
   const wrap = document.getElementById("formsWrap");
-  wrap.innerHTML = "";
-
-  GAIN_ORDER.filter((g) => state.selected.has(g)).forEach((gid) => {
-    const def = GAIN_DEFS[gid];
-    const section = document.createElement("section");
-    section.className = "card gain-form " + gid;
-
-    const groups = {};
-    def.fields.forEach((f) => {
-      const g = f.group || "__default";
-      (groups[g] = groups[g] || []).push(f);
-    });
-
-    let fieldsHtml = "";
-    Object.entries(groups).forEach(([groupName, fields]) => {
-      if (groupName !== "__default") fieldsHtml += `<h4 style="margin:14px 0 8px;font-size:13px;color:var(--text-muted)">${groupName}</h4>`;
-      fieldsHtml += `<div class="grid grid-4">`;
-      fields.forEach((f) => {
-        if (f.type === "radio") {
-          fieldsHtml += radioFieldHtml(gid, f);
-          return;
-        }
-        fieldsHtml += `
-          <div class="field" id="fw_${gid}_${f.id}">
-            <label for="${gid}_${f.id}">${f.label}</label>
-            ${fieldInputHtml(gid, f)}
-            <span class="error-msg">Informe um valor válido.</span>
-          </div>`;
-      });
-      fieldsHtml += `</div>`;
-    });
-
-    section.innerHTML = `
-      <div class="gain-form-header">
-        <span class="gain-icon" style="background:${def.color === "blue" ? "#2563EB1a" : "#16A34A1a"};color:${def.color === "blue" ? "#2563EB" : "#16A34A"}">${def.icon}</span>
-        <div>
-          <h3>${def.code} — ${def.name}</h3>
-          <p>${def.subtitle}</p>
-        </div>
-      </div>
-      ${fieldsHtml}
-      <div class="gain-results grid grid-4" id="results_${gid}"></div>
-    `;
-    wrap.appendChild(section);
-
-    def.fields.forEach((f) => {
-      if (f.type === "radio") return;
-      const el = document.getElementById(`${gid}_${f.id}`);
-      if (f.type === "currency") el.addEventListener("input", maskCurrencyKeyup);
-      if (f.type === "percent") {
-        el.addEventListener("focus", maskPercentFocus);
-        el.addEventListener("blur", maskPercentBlur);
-      }
-      if (f.default) el.value = f.type === "currency" ? "" : f.default;
-    });
-
-    const radioField = def.fields.find((f) => f.type === "radio");
-    if (radioField) {
-      document.querySelectorAll(`input[name="${gid}_${radioField.id}"]`).forEach((r) => {
-        r.addEventListener("change", () => syncFieldVisibility(gid));
-      });
-      syncFieldVisibility(gid);
+  GAIN_ORDER.forEach((gid) => {
+    let section = wrap.querySelector(`section[data-gain="${gid}"]`);
+    if (!state.active.has(gid)) {
+      if (section) section.style.display = "none";
+      return;
     }
+    if (!section) {
+      section = buildGainTypeSection(gid);
+      wrap.appendChild(section);
+      // Render any pre-existing instances (e.g. from loading a saved project) only after the
+      // section is attached to the live document — renderInstanceForm looks up its container
+      // via getElementById, which only finds nodes already in the document tree.
+      state.instances[gid].forEach((inst) => renderInstanceForm(gid, inst));
+    } else {
+      section.style.display = "";
+      wrap.appendChild(section);
+    }
+    if (state.instances[gid].length === 0) addInstance(gid);
   });
 }
 
 /* ===================== Validation ===================== */
 
-function validateGain(gainId) {
-  const def = GAIN_DEFS[gainId];
+function validateInstance(gid, uid) {
+  const def = GAIN_DEFS[gid];
   let ok = true;
   def.fields.forEach((f) => {
     if (f.type === "radio") return;
-    if (!isFieldVisible(gainId, f)) return;
-    const wrap = document.getElementById(`fw_${gainId}_${f.id}`);
-    const el = document.getElementById(`${gainId}_${f.id}`);
+    if (!isFieldVisible(gid, uid, f)) return;
+    const wrap = document.getElementById(`fw_${gid}_${uid}_${f.id}`);
+    const el = document.getElementById(`${gid}_${uid}_${f.id}`);
     let val;
     if (f.type === "currency") val = parseCurrencyInput(el.value);
     else if (f.type === "percent") val = parsePercentInput(el.value);
     else val = parseNumberInput(el.value);
 
-    const isRequired = true;
-    const invalid = isRequired && (el.value.trim() === "" || Number.isNaN(val) || val < 0);
+    const invalid = el.value.trim() === "" || Number.isNaN(val) || val < 0;
     wrap.classList.toggle("has-error", invalid);
     el.classList.toggle("invalid", invalid);
     if (invalid) ok = false;
   });
 
-  // Gain-specific guards against divide-by-zero
-  if (gainId === "g2") {
-    const prodAntes = parseNumberInput(document.getElementById("g2_prodAntes").value);
-    const prodDepois = parseNumberInput(document.getElementById("g2_prodDepois").value);
+  if (gid === "g2") {
+    const prodAntes = parseNumberInput(document.getElementById(`g2_${uid}_prodAntes`).value);
+    const prodDepois = parseNumberInput(document.getElementById(`g2_${uid}_prodDepois`).value);
     if (prodAntes <= 0 || prodDepois <= 0) {
-      document.getElementById("fw_g2_prodAntes").classList.add("has-error");
-      document.getElementById("fw_g2_prodDepois").classList.add("has-error");
+      document.getElementById(`fw_g2_${uid}_prodAntes`).classList.add("has-error");
+      document.getElementById(`fw_g2_${uid}_prodDepois`).classList.add("has-error");
       ok = false;
     }
   }
@@ -414,15 +496,21 @@ function validateGain(gainId) {
 
 function calculateAll() {
   let allValid = true;
-  state.selected.forEach((gid) => { if (!validateGain(gid)) allValid = false; });
+  state.active.forEach((gid) => {
+    state.instances[gid].forEach((inst) => { if (!validateInstance(gid, inst.uid)) allValid = false; });
+  });
   if (!allValid) return;
 
-  state.results = {};
-  state.selected.forEach((gid) => {
-    const inputs = readGainInputs(gid);
-    const result = CALCULATORS[gid](inputs);
-    state.results[gid] = { ...result, inputs };
-    renderGainMiniResults(gid, result);
+  state.active.forEach((gid) => {
+    state.instances[gid].forEach((inst) => {
+      const v = readInstanceInputs(gid, inst.uid);
+      const result = CALCULATORS[gid](v);
+      inst.inputs = v;
+      inst.result = result;
+      const nameEl = document.getElementById(`${gid}_${inst.uid}_name`);
+      inst.name = nameEl ? nameEl.value.trim() : "";
+      renderInstanceMiniResults(gid, inst);
+    });
   });
 
   state.calculated = true;
@@ -431,8 +519,10 @@ function calculateAll() {
   document.getElementById("dashboard").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderGainMiniResults(gid, result) {
-  const box = document.getElementById(`results_${gid}`);
+function renderInstanceMiniResults(gid, inst) {
+  const box = document.getElementById(`results_${gid}_${inst.uid}`);
+  if (!box) return;
+  const result = inst.result;
   const map = {
     g1: [
       ["Horas Economizadas/mês", `${fmtNum(result.outputs.horasEconomizadasMes)} h`],
@@ -467,24 +557,39 @@ function renderGainMiniResults(gid, result) {
 
 let pieChartInstance = null;
 let barChartInstance = null;
+let reportPieChartInstance = null;
+let reportBarChartInstance = null;
+
+function sumGidAnnual(gid) {
+  if (!state.active.has(gid)) return 0;
+  return state.instances[gid].reduce((s, inst) => s + (inst.result?.annual || 0), 0);
+}
+function countGidResults(gid) {
+  if (!state.active.has(gid)) return 0;
+  return state.instances[gid].filter((i) => i.result).length;
+}
+function getConsultingValue() {
+  return parseCurrencyInput(document.getElementById("projConsulting").value);
+}
 
 function renderDashboard() {
   const kpiRow = document.getElementById("kpiRow");
   kpiRow.innerHTML = "";
 
-  const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + (state.results[g]?.annual || 0), 0);
+  const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + sumGidAnnual(g), 0);
 
   GAIN_ORDER.forEach((gid) => {
     const def = GAIN_DEFS[gid];
-    const has = !!state.results[gid];
-    const annual = has ? state.results[gid].annual : 0;
+    const count = countGidResults(gid);
+    const has = count > 0;
+    const annual = sumGidAnnual(gid);
     const share = totalAnual > 0 ? (annual / totalAnual) * 100 : 0;
     const card = document.createElement("div");
     card.className = `card ${gid}`;
     card.innerHTML = `
       <span class="kpi-label">${def.icon} ${def.code} — ${def.name}</span>
       <span class="kpi-value">${has ? fmtCurrency(annual) : "—"}</span>
-      <span class="kpi-sub">${has ? `${fmtPercent(share)} do total &middot; por ano` : "Não calculado"}</span>
+      <span class="kpi-sub">${has ? `${fmtPercent(share)} do total &middot; por ano${count > 1 ? ` &middot; <span class="kpi-count">${count} kaizens</span>` : ""}` : "Não calculado"}</span>
       <div class="kpi-bar"><span style="width:${share}%;background:${def.color === "blue" ? "var(--blue)" : "var(--green)"}"></span></div>
     `;
     kpiRow.appendChild(card);
@@ -495,23 +600,30 @@ function renderDashboard() {
 
   renderRoiPayback(totalAnual);
   renderCharts();
+  renderReportCharts();
   renderReport(totalAnual);
 }
 
 function renderRoiPayback(totalAnual) {
   const roiEl = document.getElementById("roiValue");
   const paybackEl = document.getElementById("paybackValue");
-  const g4 = state.results.g4;
-  const investimento = g4 ? g4.inputs.valorRealizado : 0;
+  const investimento = getConsultingValue();
 
-  if (g4 && investimento > 0) {
+  if (investimento > 0) {
+    const ganhoMedioMensal = totalAnual / 12;
     const roi = (totalAnual / investimento) * 100;
-    const paybackMeses = totalAnual > 0 ? investimento / (totalAnual / 12) : Infinity;
+    const paybackMeses = ganhoMedioMensal > 0 ? investimento / ganhoMedioMensal : Infinity;
     roiEl.textContent = `ROI ${fmtNum(roi, 1)}%`;
-    paybackEl.textContent = Number.isFinite(paybackMeses) ? `Payback em ${fmtNum(paybackMeses, 1)} meses` : "Payback indeterminado";
+    let text = Number.isFinite(paybackMeses) ? `Payback em ${fmtNum(paybackMeses, 1)} meses` : "Payback indeterminado (sem ganho anual ainda)";
+    const startDateStr = document.getElementById("projDate").value;
+    if (startDateStr && Number.isFinite(paybackMeses)) {
+      const returnDate = addMonthsApprox(startDateStr, paybackMeses);
+      text += ` · retorno previsto em ${returnDate.toLocaleDateString("pt-BR")}`;
+    }
+    paybackEl.textContent = text;
   } else {
     roiEl.textContent = "—";
-    paybackEl.textContent = "Informe G4 (Investimento Realizado) para calcular ROI e Payback";
+    paybackEl.textContent = "Informe o Valor da Consultoria em Dados do Projeto para calcular ROI e Payback";
   }
 }
 
@@ -523,18 +635,23 @@ function chartColors() {
   };
 }
 
-function renderCharts() {
-  const colors = chartColors();
+function buildChartSeries(colorMap) {
   const labels = [];
   const data = [];
   const bg = [];
   GAIN_ORDER.forEach((gid) => {
-    if (state.results[gid]) {
+    if (state.active.has(gid) && countGidResults(gid) > 0) {
       labels.push(`${GAIN_DEFS[gid].code} — ${GAIN_DEFS[gid].name}`);
-      data.push(Math.max(0, state.results[gid].annual));
-      bg.push(colors[gid]);
+      data.push(Math.max(0, sumGidAnnual(gid)));
+      bg.push(colorMap[gid]);
     }
   });
+  return { labels, data, bg };
+}
+
+function renderCharts() {
+  const colors = chartColors();
+  const { labels, data, bg } = buildChartSeries(colors);
 
   const pieCtx = document.getElementById("pieChart").getContext("2d");
   if (pieChartInstance) pieChartInstance.destroy();
@@ -564,62 +681,123 @@ function renderCharts() {
   });
 }
 
+// Fixed light-theme colors so the report/PDF/print output always looks correct on white paper,
+// regardless of the on-screen dark/light theme.
+function renderReportCharts() {
+  const fixedColors = { g1: "#2563EB", g2: "#60A5FA", g3: "#16A34A", g4: "#4ADE80" };
+  const { labels, data, bg } = buildChartSeries(fixedColors);
+
+  const pieCtx = document.getElementById("reportPieChart").getContext("2d");
+  if (reportPieChartInstance) reportPieChartInstance.destroy();
+  reportPieChartInstance = new Chart(pieCtx, {
+    type: "pie",
+    data: { labels, datasets: [{ data, backgroundColor: bg, borderColor: "#ffffff", borderWidth: 2 }] },
+    options: {
+      responsive: false, animation: false,
+      plugins: { legend: { position: "bottom", labels: { color: "#0F172A", boxWidth: 12, font: { size: 10.5 } } } },
+    },
+  });
+
+  const barCtx = document.getElementById("reportBarChart").getContext("2d");
+  if (reportBarChartInstance) reportBarChartInstance.destroy();
+  reportBarChartInstance = new Chart(barCtx, {
+    type: "bar",
+    data: { labels, datasets: [{ label: "Ganho Anual (R$)", data, backgroundColor: bg, borderRadius: 6 }] },
+    options: {
+      responsive: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: "#0F172A", font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: "#0F172A", callback: (v) => fmtCurrency(v), font: { size: 10 } }, grid: { color: "#E2E8F0" } },
+      },
+    },
+  });
+}
+
 /* ===================== Executive report ===================== */
 
 function renderReport(totalAnual) {
   const name = document.getElementById("projName").value || "(sem nome definido)";
   const company = document.getElementById("projCompany").value || "(empresa não informada)";
   const responsible = document.getElementById("projResponsible").value || "(responsável não informado)";
-  const date = document.getElementById("projDate").value || new Date().toISOString().slice(0, 10);
+  const startDateStr = document.getElementById("projDate").value;
+  const endDateStr = document.getElementById("projEndDate").value;
+  const consulting = getConsultingValue();
+
+  const startDate = startDateStr ? new Date(startDateStr + "T00:00:00") : null;
+  const endDate = endDateStr ? new Date(endDateStr + "T00:00:00") : null;
+  let durationText = "";
+  if (startDate && endDate && endDate >= startDate) {
+    const months = (endDate.getFullYear() - startDate.getFullYear()) * 12 + (endDate.getMonth() - startDate.getMonth());
+    durationText = ` &middot; Duração: ${months} ${months === 1 ? "mês" : "meses"}`;
+  }
 
   document.getElementById("reportMeta").innerHTML = `
     <strong>${name}</strong><br>
     ${company}<br>
     Responsável: ${responsible}<br>
-    Data: ${new Date(date + "T00:00:00").toLocaleDateString("pt-BR")}
+    Início: ${startDate ? startDate.toLocaleDateString("pt-BR") : "—"}${endDate ? ` &middot; Fim: ${endDate.toLocaleDateString("pt-BR")}` : ""}${durationText}<br>
+    ${consulting > 0 ? `Valor da Consultoria: ${fmtCurrency(consulting)}` : ""}
   `;
 
-  const selectedNames = GAIN_ORDER.filter((g) => state.results[g]).map((g) => `${GAIN_DEFS[g].code} — ${GAIN_DEFS[g].name}`);
+  const activeGids = GAIN_ORDER.filter((g) => state.active.has(g) && countGidResults(g) > 0);
+  const selectedNames = activeGids.map((g) => `${GAIN_DEFS[g].code} — ${GAIN_DEFS[g].name} (${countGidResults(g)} ${countGidResults(g) === 1 ? "kaizen" : "kaizens"})`);
   document.getElementById("reportGainsSelected").textContent = selectedNames.join(" · ") || "Nenhum ganho calculado.";
 
   const memoryWrap = document.getElementById("reportMemory");
-  memoryWrap.innerHTML = "<h3>Memória de Cálculo</h3>" + GAIN_ORDER.filter((g) => state.results[g]).map((gid) => {
+  memoryWrap.innerHTML = "<h3>Memória de Cálculo</h3>" + activeGids.map((gid) => {
     const def = GAIN_DEFS[gid];
-    const r = state.results[gid];
-    return `
-      <div class="memory-block">
-        <h4>${def.icon} ${def.code} — ${def.name}</h4>
-        <ol>${r.steps.map((s) => `<li>${s}</li>`).join("")}</ol>
-        <div class="result-line">Resultado: ${fmtCurrencyAno(r.annual)}</div>
-      </div>`;
+    return state.instances[gid].filter((i) => i.result).map((inst, idx) => {
+      const label = inst.name ? `${def.code} · Kaizen #${idx + 1} — ${inst.name}` : `${def.code} · Kaizen #${idx + 1}`;
+      return `
+        <div class="memory-block">
+          <h4>${def.icon} ${label}</h4>
+          <ol>${inst.result.steps.map((s) => `<li>${s}</li>`).join("")}</ol>
+          <div class="result-line">Resultado: ${fmtCurrencyAno(inst.result.annual)}</div>
+        </div>`;
+    }).join("");
   }).join("");
 
-  const table = document.getElementById("reportTotalsTable");
-  const rows = GAIN_ORDER.filter((g) => state.results[g]).map((gid) => {
-    const share = totalAnual > 0 ? (state.results[gid].annual / totalAnual) * 100 : 0;
-    return `<tr><td>${GAIN_DEFS[gid].code} — ${GAIN_DEFS[gid].name}</td><td>${fmtCurrency(state.results[gid].annual)}</td><td>${fmtPercent(share)}</td></tr>`;
-  }).join("");
-  const g4 = state.results.g4;
-  const investimento = g4 ? g4.inputs.valorRealizado : 0;
-  const roiRow = g4 && investimento > 0 ? `<tr><td>ROI</td><td colspan="2">${fmtNum((totalAnual / investimento) * 100, 1)}%</td></tr>
-    <tr><td>Payback</td><td colspan="2">${fmtNum(investimento / (totalAnual / 12), 1)} meses</td></tr>` : "";
+  const rows = [];
+  activeGids.forEach((gid) => {
+    const def = GAIN_DEFS[gid];
+    const insts = state.instances[gid].filter((i) => i.result);
+    insts.forEach((inst, idx) => {
+      const share = totalAnual > 0 ? (inst.result.annual / totalAnual) * 100 : 0;
+      const label = inst.name ? `${def.code} · Kaizen #${idx + 1} — ${inst.name}` : `${def.code} · Kaizen #${idx + 1}`;
+      rows.push(`<tr><td>${label}</td><td>${fmtCurrency(inst.result.annual)}</td><td>${fmtPercent(share)}</td></tr>`);
+    });
+    if (insts.length > 1) {
+      const subtotal = insts.reduce((s, i) => s + i.result.annual, 0);
+      const share = totalAnual > 0 ? (subtotal / totalAnual) * 100 : 0;
+      rows.push(`<tr class="subtotal-row"><td>Subtotal ${def.code}</td><td>${fmtCurrency(subtotal)}</td><td>${fmtPercent(share)}</td></tr>`);
+    }
+  });
 
-  table.innerHTML = `
-    <thead><tr><th>Ganho</th><th>Valor Anual</th><th>Participação</th></tr></thead>
+  const roiRows = consulting > 0
+    ? `<tr><td>Valor da Consultoria (Investimento)</td><td colspan="2">${fmtCurrency(consulting)}</td></tr>
+       <tr><td>ROI</td><td colspan="2">${fmtNum((totalAnual / consulting) * 100, 1)}%</td></tr>
+       <tr><td>Payback</td><td colspan="2">${totalAnual > 0 ? fmtNum(consulting / (totalAnual / 12), 1) + " meses" : "indeterminado"}</td></tr>`
+    : "";
+
+  document.getElementById("reportTotalsTable").innerHTML = `
+    <thead><tr><th>Kaizen</th><th>Valor Anual</th><th>Participação</th></tr></thead>
     <tbody>
-      ${rows}
+      ${rows.join("")}
       <tr style="font-weight:800"><td>Ganho Anual Total</td><td colspan="2">${fmtCurrency(totalAnual)}</td></tr>
       <tr><td>Ganho Médio Mensal</td><td colspan="2">${fmtCurrency(totalAnual / 12)}</td></tr>
-      ${roiRow}
+      ${roiRows}
     </tbody>
   `;
 
-  const topGain = GAIN_ORDER.filter((g) => state.results[g]).sort((a, b) => state.results[b].annual - state.results[a].annual)[0];
-  const conclusion = topGain
-    ? `O projeto Kaizen "${name}" apresenta um ganho financeiro anual total estimado em ${fmtCurrency(totalAnual)}, equivalente a uma média mensal de ${fmtCurrency(totalAnual / 12)}. ` +
-      `O ganho de maior impacto é ${GAIN_DEFS[topGain].code} — ${GAIN_DEFS[topGain].name}, responsável por ${fmtPercent(totalAnual > 0 ? (state.results[topGain].annual / totalAnual) * 100 : 0)} do resultado total. ` +
-      (g4 && investimento > 0
-        ? `Considerando o investimento realizado de ${fmtCurrency(investimento)}, o projeto apresenta ROI de ${fmtNum((totalAnual / investimento) * 100, 1)}% ao ano, com payback estimado em ${fmtNum(investimento / (totalAnual / 12), 1)} meses. `
+  const flatInstances = [];
+  activeGids.forEach((gid) => state.instances[gid].filter((i) => i.result).forEach((inst) => flatInstances.push({ gid, inst })));
+  const top = flatInstances.sort((a, b) => b.inst.result.annual - a.inst.result.annual)[0];
+  const conclusion = top
+    ? `O projeto Kaizen "${name}" apresenta um ganho financeiro anual total estimado em ${fmtCurrency(totalAnual)}, equivalente a uma média mensal de ${fmtCurrency(totalAnual / 12)}, distribuído em ${flatInstances.length} ${flatInstances.length === 1 ? "iniciativa Kaizen" : "iniciativas Kaizen"}. ` +
+      `A de maior impacto é ${GAIN_DEFS[top.gid].code}${top.inst.name ? ` — ${top.inst.name}` : ""}, responsável por ${fmtPercent(totalAnual > 0 ? (top.inst.result.annual / totalAnual) * 100 : 0)} do resultado total. ` +
+      (consulting > 0
+        ? `Considerando o valor da consultoria de ${fmtCurrency(consulting)}, o projeto apresenta ROI de ${fmtNum((totalAnual / consulting) * 100, 1)}% ao ano${totalAnual > 0 ? `, com payback estimado em ${fmtNum(consulting / (totalAnual / 12), 1)} meses` : ""}. `
         : "") +
       `Recomenda-se validar os dados de entrada com a equipe operacional e acompanhar a realização efetiva dos ganhos nos próximos ciclos de PPCP.`
     : "Nenhum ganho foi calculado ainda.";
@@ -655,10 +833,13 @@ function clearAll() {
   document.getElementById("projName").value = "";
   document.getElementById("projCompany").value = "";
   document.getElementById("projResponsible").value = "";
+  document.getElementById("projConsulting").value = "";
   document.getElementById("projDate").value = "";
-  state.selected.clear();
-  state.results = {};
+  document.getElementById("projEndDate").value = "";
+  state.active.clear();
+  state.instances = { g1: [], g2: [], g3: [], g4: [] };
   state.calculated = false;
+  document.getElementById("formsWrap").innerHTML = "";
   document.getElementById("dashboard").style.display = "none";
   renderGainCards();
 }
@@ -680,10 +861,20 @@ function saveProject() {
     company: document.getElementById("projCompany").value,
     responsible: document.getElementById("projResponsible").value,
     date: document.getElementById("projDate").value || new Date().toISOString().slice(0, 10),
+    endDate: document.getElementById("projEndDate").value || "",
+    consulting: getConsultingValue(),
     savedAt: new Date().toISOString(),
-    selected: Array.from(state.selected),
-    results: state.results,
+    active: Array.from(state.active),
+    instances: {},
   };
+  GAIN_ORDER.forEach((gid) => {
+    project.instances[gid] = state.instances[gid].filter((i) => i.result).map((inst) => ({
+      uid: inst.uid,
+      name: inst.name || "",
+      inputs: inst.inputs,
+      result: inst.result,
+    }));
+  });
   const list = getHistory();
   list.unshift(project);
   setHistory(list);
@@ -699,11 +890,12 @@ function renderHistoryList() {
     return;
   }
   wrap.innerHTML = list.map((p) => {
-    const total = Object.values(p.results).reduce((s, r) => s + (r.annual || 0), 0);
+    const total = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).reduce((s2, i) => s2 + (i.result?.annual || 0), 0), 0);
+    const kaizenCount = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).length, 0);
     return `
       <div class="history-item">
         <div class="hi-name">${p.name}</div>
-        <div class="hi-meta">${p.company || "—"} &middot; ${new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")}<br>
+        <div class="hi-meta">${p.company || "—"} &middot; ${new Date(p.date + "T00:00:00").toLocaleDateString("pt-BR")} &middot; ${kaizenCount} ${kaizenCount === 1 ? "kaizen" : "kaizens"}<br>
           Ganho anual total: ${fmtCurrency(total)}</div>
         <div class="hi-actions">
           <button class="btn btn-secondary" data-load="${p.id}">Carregar</button>
@@ -723,33 +915,46 @@ function loadProject(id) {
   document.getElementById("projCompany").value = p.company;
   document.getElementById("projResponsible").value = p.responsible;
   document.getElementById("projDate").value = p.date;
+  document.getElementById("projEndDate").value = p.endDate || "";
+  document.getElementById("projConsulting").value = p.consulting ? NUM2.format(p.consulting).replace(/[^\d,.-]/g, "") : "";
 
-  state.selected = new Set(p.selected);
+  state.active = new Set(p.active);
+  state.instances = { g1: [], g2: [], g3: [], g4: [] };
+  GAIN_ORDER.forEach((gid) => {
+    state.instances[gid] = (p.instances[gid] || []).map((i) => ({ uid: i.uid }));
+  });
+  document.getElementById("formsWrap").innerHTML = "";
   renderGainCards();
 
-  p.selected.forEach((gid) => {
-    const def = GAIN_DEFS[gid];
-    const inputs = p.results[gid]?.inputs || {};
-    def.fields.forEach((f) => {
-      if (f.type === "radio") {
-        const val = inputs[f.id] || f.default;
-        const radio = document.querySelector(`input[name="${gid}_${f.id}"][value="${val}"]`);
-        if (radio) radio.checked = true;
-        return;
-      }
-      const el = document.getElementById(`${gid}_${f.id}`);
-      if (!el) return;
-      const val = inputs[f.id];
-      if (f.type === "currency") el.value = val ? NUM2.format(val).replace(/[^\d,.-]/g, "") : "";
-      else if (f.type === "percent") el.value = val ? `${fmtNum(val, 1)}%` : "";
-      else el.value = val ?? f.default ?? "";
+  GAIN_ORDER.forEach((gid) => {
+    (p.instances[gid] || []).forEach((saved, idx) => {
+      const inst = state.instances[gid][idx];
+      inst.inputs = saved.inputs;
+      inst.result = saved.result;
+      inst.name = saved.name || "";
+      const nameEl = document.getElementById(`${gid}_${inst.uid}_name`);
+      if (nameEl) nameEl.value = inst.name;
+      const def = GAIN_DEFS[gid];
+      def.fields.forEach((f) => {
+        if (f.type === "radio") {
+          const val = saved.inputs?.[f.id] || f.default;
+          const radio = document.querySelector(`input[name="${gid}_${inst.uid}_${f.id}"][value="${val}"]`);
+          if (radio) radio.checked = true;
+          return;
+        }
+        const el = document.getElementById(`${gid}_${inst.uid}_${f.id}`);
+        if (!el) return;
+        const val = saved.inputs?.[f.id];
+        if (f.type === "currency") el.value = val ? NUM2.format(val).replace(/[^\d,.-]/g, "") : "";
+        else if (f.type === "percent") el.value = val ? `${fmtNum(val, 1)}%` : "";
+        else el.value = val ?? f.default ?? "";
+      });
+      syncFieldVisibility(gid, inst.uid);
+      renderInstanceMiniResults(gid, inst);
     });
-    syncFieldVisibility(gid);
   });
 
-  state.results = p.results;
   state.calculated = true;
-  Object.entries(p.results).forEach(([gid, r]) => renderGainMiniResults(gid, r));
   renderDashboard();
   document.getElementById("dashboard").style.display = "flex";
   closeHistoryPanel();
@@ -805,45 +1010,60 @@ function exportExcel() {
   if (!state.calculated) { alert("Calcule os resultados antes de exportar."); return; }
   const wb = XLSX.utils.book_new();
 
-  const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + (state.results[g]?.annual || 0), 0);
+  const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + sumGidAnnual(g), 0);
+  const consulting = getConsultingValue();
+
   const resumo = [
     ["Relatório Executivo Kaizen"],
     ["Projeto", document.getElementById("projName").value],
     ["Empresa", document.getElementById("projCompany").value],
     ["Responsável", document.getElementById("projResponsible").value],
-    ["Data", document.getElementById("projDate").value],
+    ["Data Início", document.getElementById("projDate").value],
+    ["Data Fim", document.getElementById("projEndDate").value],
+    ["Valor da Consultoria", consulting],
     [],
-    ["Ganho", "Valor Anual (R$)", "Participação (%)"],
-    ...GAIN_ORDER.filter((g) => state.results[g]).map((g) => [
-      `${GAIN_DEFS[g].code} — ${GAIN_DEFS[g].name}`,
-      Number(state.results[g].annual.toFixed(2)),
-      totalAnual > 0 ? Number(((state.results[g].annual / totalAnual) * 100).toFixed(2)) : 0,
-    ]),
-    [],
-    ["Ganho Anual Total", Number(totalAnual.toFixed(2))],
-    ["Ganho Médio Mensal", Number((totalAnual / 12).toFixed(2))],
+    ["Kaizen", "Tipo", "Valor Anual (R$)", "Participação (%)"],
   ];
-  const g4 = state.results.g4;
-  if (g4 && g4.inputs.valorRealizado > 0) {
-    resumo.push(["ROI (%)", Number(((totalAnual / g4.inputs.valorRealizado) * 100).toFixed(2))]);
-    resumo.push(["Payback (meses)", Number((g4.inputs.valorRealizado / (totalAnual / 12)).toFixed(2))]);
+
+  GAIN_ORDER.forEach((gid) => {
+    if (!state.active.has(gid)) return;
+    const def = GAIN_DEFS[gid];
+    state.instances[gid].filter((i) => i.result).forEach((inst, idx) => {
+      resumo.push([
+        inst.name || `Kaizen #${idx + 1}`,
+        `${def.code} — ${def.name}`,
+        Number(inst.result.annual.toFixed(2)),
+        totalAnual > 0 ? Number(((inst.result.annual / totalAnual) * 100).toFixed(2)) : 0,
+      ]);
+    });
+  });
+
+  resumo.push([]);
+  resumo.push(["Ganho Anual Total", "", Number(totalAnual.toFixed(2))]);
+  resumo.push(["Ganho Médio Mensal", "", Number((totalAnual / 12).toFixed(2))]);
+  if (consulting > 0) {
+    resumo.push(["ROI (%)", "", Number(((totalAnual / consulting) * 100).toFixed(2))]);
+    if (totalAnual > 0) resumo.push(["Payback (meses)", "", Number((consulting / (totalAnual / 12)).toFixed(2))]);
   }
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(resumo), "Resumo");
 
-  GAIN_ORDER.filter((g) => state.results[g]).forEach((gid) => {
-    const r = state.results[gid];
-    const sheet = [
-      [`${GAIN_DEFS[gid].code} — ${GAIN_DEFS[gid].name}`],
-      [],
-      ["Entradas"],
-      ...Object.entries(r.inputs).map(([k, v]) => [k, v]),
-      [],
-      ["Memória de Cálculo"],
-      ...r.steps.map((s) => [s]),
-      [],
-      ["Resultado Anual (R$)", Number(r.annual.toFixed(2))],
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet), GAIN_DEFS[gid].code);
+  GAIN_ORDER.forEach((gid) => {
+    if (!state.active.has(gid)) return;
+    const insts = state.instances[gid].filter((i) => i.result);
+    if (!insts.length) return;
+    const def = GAIN_DEFS[gid];
+    const sheet = [[`${def.code} — ${def.name}`], []];
+    insts.forEach((inst, idx) => {
+      sheet.push([`Kaizen #${idx + 1}${inst.name ? " — " + inst.name : ""}`]);
+      sheet.push(["Entradas"]);
+      Object.entries(inst.inputs).forEach(([k, v]) => sheet.push([k, v]));
+      sheet.push([]);
+      sheet.push(["Memória de Cálculo"]);
+      inst.result.steps.forEach((s) => sheet.push([s]));
+      sheet.push(["Resultado Anual (R$)", Number(inst.result.annual.toFixed(2))]);
+      sheet.push([]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sheet), def.code);
   });
 
   const projName = document.getElementById("projName").value || "kaizen";
@@ -860,14 +1080,11 @@ function init() {
     card.addEventListener("click", () => toggleGain(card.dataset.gain));
   });
   document.getElementById("selectAllGains").addEventListener("click", () => {
-    GAIN_ORDER.forEach((g) => state.selected.add(g));
+    GAIN_ORDER.forEach((g) => state.active.add(g));
     renderGainCards();
   });
   document.getElementById("clearSelection").addEventListener("click", () => {
-    state.selected.clear();
-    state.results = {};
-    state.calculated = false;
-    document.getElementById("dashboard").style.display = "none";
+    state.active.clear();
     renderGainCards();
   });
 
@@ -883,8 +1100,12 @@ function init() {
   document.getElementById("closeHistory").addEventListener("click", closeHistoryPanel);
   document.getElementById("overlay").addEventListener("click", closeHistoryPanel);
 
-  ["projName", "projCompany", "projResponsible", "projDate"].forEach((id) => {
-    document.getElementById(id).addEventListener("input", () => { if (state.calculated) renderReport(GAIN_ORDER.reduce((s, g) => s + (state.results[g]?.annual || 0), 0)); });
+  document.getElementById("projConsulting").addEventListener("input", maskCurrencyKeyup);
+
+  ["projName", "projCompany", "projResponsible", "projDate", "projEndDate", "projConsulting"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", () => {
+      if (state.calculated) renderReport(GAIN_ORDER.reduce((s, g) => s + sumGidAnnual(g), 0));
+    });
   });
 
   renderGainCards();

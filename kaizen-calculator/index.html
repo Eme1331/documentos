@@ -29,7 +29,7 @@
     <!-- PROJECT INFO -->
     <section class="card panel">
       <h2 class="panel-title">Dados do Projeto</h2>
-      <div class="grid grid-4">
+      <div class="grid grid-3">
         <div class="field">
           <label for="projName">Nome do Projeto Kaizen</label>
           <input type="text" id="projName" placeholder="Ex.: Redução de Setup Linha 3">
@@ -43,8 +43,17 @@
           <input type="text" id="projResponsible" placeholder="Nome do responsável">
         </div>
         <div class="field">
-          <label for="projDate">Data</label>
+          <label for="projConsulting">Valor da Consultoria (Investimento)</label>
+          <input type="text" inputmode="decimal" id="projConsulting" placeholder="0,00">
+          <span class="hint">Usado como base para calcular ROI e Payback</span>
+        </div>
+        <div class="field">
+          <label for="projDate">Data Início do Projeto</label>
           <input type="date" id="projDate">
+        </div>
+        <div class="field">
+          <label for="projEndDate">Data Fim do Projeto</label>
+          <input type="date" id="projEndDate">
         </div>
       </div>
     </section>
@@ -52,32 +61,44 @@
     <!-- GAIN SELECTOR CARDS -->
     <section class="panel">
       <h2 class="panel-title">Selecione os Ganhos a Calcular</h2>
-      <p class="panel-sub">Escolha um, vários ou todos os ganhos. Somente os campos do(s) ganho(s) selecionado(s) serão exibidos.</p>
-      <div class="grid grid-4 gain-cards" id="gainCards">
+      <p class="panel-sub">Escolha um, vários ou todos os tipos de ganho. É possível adicionar mais de um Kaizen por tipo.</p>
+      <div class="gain-cards" id="gainCards">
         <button class="gain-card" data-gain="g1" type="button">
           <span class="gain-icon" style="background:#2563EB1a;color:#2563EB">⏱</span>
-          <span class="gain-code">G1</span>
-          <span class="gain-name">Redução do Tempo Operacional</span>
+          <span class="gain-card-text">
+            <span class="gain-code">G1</span>
+            <span class="gain-name">Redução do Tempo Operacional</span>
+          </span>
+          <span class="gain-count-badge" data-count-for="g1"></span>
         </button>
         <button class="gain-card" data-gain="g2" type="button">
           <span class="gain-icon" style="background:#2563EB1a;color:#2563EB">⚙️</span>
-          <span class="gain-code">G2</span>
-          <span class="gain-name">Aumento de Produtividade</span>
+          <span class="gain-card-text">
+            <span class="gain-code">G2</span>
+            <span class="gain-name">Aumento de Produtividade</span>
+          </span>
+          <span class="gain-count-badge" data-count-for="g2"></span>
         </button>
         <button class="gain-card" data-gain="g3" type="button">
           <span class="gain-icon" style="background:#16A34A1a;color:#16A34A">♻️</span>
-          <span class="gain-code">G3</span>
-          <span class="gain-name">Redução de Quebra / Refugo</span>
+          <span class="gain-card-text">
+            <span class="gain-code">G3</span>
+            <span class="gain-name">Redução de Quebra / Refugo</span>
+          </span>
+          <span class="gain-count-badge" data-count-for="g3"></span>
         </button>
         <button class="gain-card" data-gain="g4" type="button">
           <span class="gain-icon" style="background:#16A34A1a;color:#16A34A">💰</span>
-          <span class="gain-code">G4</span>
-          <span class="gain-name">Custo Evitado</span>
+          <span class="gain-card-text">
+            <span class="gain-code">G4</span>
+            <span class="gain-name">Custo Evitado</span>
+          </span>
+          <span class="gain-count-badge" data-count-for="g4"></span>
         </button>
       </div>
       <div class="gain-quick-actions">
         <button class="btn btn-secondary" id="selectAllGains">Selecionar os 4 Ganhos</button>
-        <button class="btn btn-secondary" id="clearSelection">Limpar Seleção</button>
+        <button class="btn btn-secondary" id="clearSelection">Ocultar Todos</button>
       </div>
     </section>
 
@@ -115,7 +136,7 @@
         <div class="card total-card" id="roiCard">
           <span class="total-label">ROI / Payback</span>
           <span class="total-value" id="roiValue">—</span>
-          <span class="total-sub" id="paybackValue">Informe G4 para calcular</span>
+          <span class="total-sub" id="paybackValue">Informe o Valor da Consultoria para calcular</span>
         </div>
       </div>
 
@@ -142,11 +163,25 @@
           <p id="reportGainsSelected"></p>
         </div>
 
+        <div class="report-section">
+          <h3>Gráficos</h3>
+          <div class="report-charts-grid">
+            <div class="report-chart-box">
+              <h4>Participação por Ganho</h4>
+              <canvas id="reportPieChart" width="480" height="260"></canvas>
+            </div>
+            <div class="report-chart-box">
+              <h4>Comparativo Anual entre Ganhos</h4>
+              <canvas id="reportBarChart" width="480" height="260"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="report-section" id="reportMemory"></div>
 
         <div class="report-section">
           <h3>Resultado Consolidado</h3>
-          <table class="report-table" id="reportTotalsTable"></table>
+          <div class="table-scroll"><table class="report-table" id="reportTotalsTable"></table></div>
         </div>
 
         <div class="report-section">
