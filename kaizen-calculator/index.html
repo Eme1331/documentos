@@ -204,6 +204,15 @@
   </aside>
   <div class="overlay" id="overlay"></div>
 
+  <!-- IN-APP MODAL (replaces native alert/confirm, which some embedded/sandboxed
+       viewers block silently) -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-box" role="alertdialog" aria-modal="true">
+      <p id="modalMessage"></p>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
 </div>
 
 <script src="js/vendor/chart.umd.js"></script>

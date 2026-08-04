@@ -251,9 +251,27 @@ body {
 .history-item .hi-actions { display:flex; gap:8px; }
 .history-item .hi-actions .btn { padding:6px 10px; font-size:12px; }
 .history-empty { color:var(--text-muted); font-size:13px; text-align:center; padding: 30px 0; }
+.history-storage-warning {
+  background: #FEF3C7; color:#92400E; border:1px solid #FDE68A; border-radius:10px;
+  padding:10px 12px; font-size:12px; line-height:1.4; margin-bottom:4px;
+}
+:root[data-theme="dark"] .history-storage-warning { background:#78350F55; color:#FDE68A; border-color:#92400E; }
 
 .overlay { position:fixed; inset:0; background:rgba(15,23,42,.35); z-index:40; display:none; }
 .overlay.show { display:block; }
+
+/* ---------- In-app modal (alert/confirm replacement) ---------- */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(15,23,42,.45); z-index:100;
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.show { display:flex; }
+.modal-box {
+  background: var(--surface); color: var(--text); border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  padding:22px; max-width:420px; width:100%;
+}
+.modal-box p { margin:0 0 18px; font-size:14px; line-height:1.5; white-space:pre-line; }
+.modal-actions { display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; }
 
 /* ---------- Utility ---------- */
 .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; }

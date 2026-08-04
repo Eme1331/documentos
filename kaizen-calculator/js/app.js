@@ -804,10 +804,45 @@ function renderReport(totalAnual) {
   document.getElementById("reportConclusion").textContent = conclusion;
 }
 
+/* ===================== Storage (with in-memory fallback) ===================== */
+// localStorage throws a SecurityError in some sandboxed embeds (e.g. an iframe without
+// allow-same-origin) instead of just being unavailable. All access goes through this
+// wrapper so the app degrades to a session-only, in-memory store instead of crashing.
+
+const memoryStore = {};
+let storageAvailable = null;
+
+function isStorageAvailable() {
+  if (storageAvailable !== null) return storageAvailable;
+  try {
+    const testKey = "__kaizen_storage_test__";
+    localStorage.setItem(testKey, "1");
+    localStorage.removeItem(testKey);
+    storageAvailable = true;
+  } catch {
+    storageAvailable = false;
+  }
+  return storageAvailable;
+}
+
+function storageGet(key) {
+  if (isStorageAvailable()) {
+    try { return localStorage.getItem(key); } catch { /* fall through */ }
+  }
+  return Object.prototype.hasOwnProperty.call(memoryStore, key) ? memoryStore[key] : null;
+}
+
+function storageSet(key, value) {
+  if (isStorageAvailable()) {
+    try { localStorage.setItem(key, value); return; } catch { /* fall through */ }
+  }
+  memoryStore[key] = value;
+}
+
 /* ===================== Theme ===================== */
 
 function initTheme() {
-  const saved = localStorage.getItem("kaizen_theme");
+  const saved = storageGet("kaizen_theme");
   if (saved) document.documentElement.setAttribute("data-theme", saved);
   updateThemeButton();
 }
@@ -816,7 +851,7 @@ function toggleTheme() {
     (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   const next = current === "dark" ? "light" : "dark";
   document.documentElement.setAttribute("data-theme", next);
-  localStorage.setItem("kaizen_theme", next);
+  storageSet("kaizen_theme", next);
   updateThemeButton();
   if (state.calculated) renderCharts();
 }
@@ -826,22 +861,55 @@ function updateThemeButton() {
   document.querySelector("#themeToggle .btn-icon").textContent = current === "dark" ? "☀️" : "🌙";
 }
 
+/* ===================== In-app modal (alert/confirm replacement) ===================== */
+// Native alert()/confirm() are silently no-ops in some sandboxed/embedded viewers
+// (confirm() returns false without prompting), which would make "Limpar" appear
+// broken and hide feedback. This custom modal works the same everywhere.
+
+function showModal(message, buttons) {
+  document.getElementById("modalMessage").textContent = message;
+  const actions = document.getElementById("modalActions");
+  actions.innerHTML = "";
+  buttons.forEach((b) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `btn ${b.primary ? "btn-primary" : "btn-outline"}`;
+    btn.textContent = b.label;
+    btn.addEventListener("click", () => { hideModal(); b.action?.(); });
+    actions.appendChild(btn);
+  });
+  document.getElementById("modalOverlay").classList.add("show");
+}
+function hideModal() {
+  document.getElementById("modalOverlay").classList.remove("show");
+}
+function showToast(message) {
+  showModal(message, [{ label: "OK", primary: true }]);
+}
+function showConfirm(message, onConfirm) {
+  showModal(message, [
+    { label: "Cancelar" },
+    { label: "Confirmar", primary: true, action: onConfirm },
+  ]);
+}
+
 /* ===================== Clear ===================== */
 
 function clearAll() {
-  if (!confirm("Deseja limpar todos os campos e resultados?")) return;
-  document.getElementById("projName").value = "";
-  document.getElementById("projCompany").value = "";
-  document.getElementById("projResponsible").value = "";
-  document.getElementById("projConsulting").value = "";
-  document.getElementById("projDate").value = "";
-  document.getElementById("projEndDate").value = "";
-  state.active.clear();
-  state.instances = { g1: [], g2: [], g3: [], g4: [] };
-  state.calculated = false;
-  document.getElementById("formsWrap").innerHTML = "";
-  document.getElementById("dashboard").style.display = "none";
-  renderGainCards();
+  showConfirm("Deseja limpar todos os campos e resultados?", () => {
+    document.getElementById("projName").value = "";
+    document.getElementById("projCompany").value = "";
+    document.getElementById("projResponsible").value = "";
+    document.getElementById("projConsulting").value = "";
+    document.getElementById("projDate").value = "";
+    document.getElementById("projEndDate").value = "";
+    state.active.clear();
+    state.instances = { g1: [], g2: [], g3: [], g4: [] };
+    state.calculated = false;
+    document.getElementById("formsWrap").innerHTML = "";
+    document.getElementById("dashboard").style.display = "none";
+    renderGainCards();
+  });
 }
 
 /* ===================== History (localStorage) ===================== */
@@ -849,12 +917,12 @@ function clearAll() {
 const HISTORY_KEY = "kaizen_projects_history";
 
 function getHistory() {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
+  try { return JSON.parse(storageGet(HISTORY_KEY)) || []; } catch { return []; }
 }
-function setHistory(list) { localStorage.setItem(HISTORY_KEY, JSON.stringify(list)); }
+function setHistory(list) { storageSet(HISTORY_KEY, JSON.stringify(list)); }
 
 function saveProject() {
-  if (!state.calculated) { alert("Calcule os resultados antes de salvar o projeto."); return; }
+  if (!state.calculated) { showToast("Calcule os resultados antes de salvar o projeto."); return; }
   const project = {
     id: `proj_${Date.now()}`,
     name: document.getElementById("projName").value || "Projeto Kaizen sem nome",
@@ -879,17 +947,24 @@ function saveProject() {
   list.unshift(project);
   setHistory(list);
   renderHistoryList();
-  alert("Projeto salvo no histórico local.");
+  showToast(isStorageAvailable()
+    ? "Projeto salvo no histórico local."
+    : "Projeto salvo apenas para esta sessão: o armazenamento permanente do navegador está bloqueado neste ambiente (comum em pré-visualizações incorporadas). Abra o arquivo diretamente no navegador para manter o histórico entre acessos.");
 }
 
 function renderHistoryList() {
   const list = getHistory();
   const wrap = document.getElementById("historyList");
+  const storageWarning = isStorageAvailable() ? "" : `
+    <div class="history-storage-warning">
+      ⚠️ Armazenamento permanente indisponível neste ambiente. Os projetos salvos aqui valem só para esta sessão
+      e somem ao recarregar a página — abra o arquivo diretamente no navegador para manter o histórico.
+    </div>`;
   if (!list.length) {
-    wrap.innerHTML = `<div class="history-empty">Nenhum projeto salvo ainda.</div>`;
+    wrap.innerHTML = `${storageWarning}<div class="history-empty">Nenhum projeto salvo ainda.</div>`;
     return;
   }
-  wrap.innerHTML = list.map((p) => {
+  wrap.innerHTML = storageWarning + list.map((p) => {
     const total = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).reduce((s2, i) => s2 + (i.result?.annual || 0), 0), 0);
     const kaizenCount = GAIN_ORDER.reduce((s, gid) => s + (p.instances[gid] || []).length, 0);
     return `
@@ -978,7 +1053,7 @@ function closeHistoryPanel() {
 /* ===================== Export: PDF / Excel / Print ===================== */
 
 async function exportPdf() {
-  if (!state.calculated) { alert("Calcule os resultados antes de exportar."); return; }
+  if (!state.calculated) { showToast("Calcule os resultados antes de exportar."); return; }
   const { jsPDF } = window.jspdf;
   const reportEl = document.getElementById("reportArea");
   const canvas = await html2canvas(reportEl, { scale: 1.5, backgroundColor: "#ffffff" });
@@ -1007,7 +1082,7 @@ async function exportPdf() {
 }
 
 function exportExcel() {
-  if (!state.calculated) { alert("Calcule os resultados antes de exportar."); return; }
+  if (!state.calculated) { showToast("Calcule os resultados antes de exportar."); return; }
   const wb = XLSX.utils.book_new();
 
   const totalAnual = GAIN_ORDER.reduce((sum, g) => sum + sumGidAnnual(g), 0);
