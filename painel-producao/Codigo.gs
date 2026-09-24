@@ -67,7 +67,7 @@ function tituloMarco_(m) {
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Painel de Produção')
-    .addItem('1. Configurar (criar formulários)', 'configurar')
+    .addItem('1. Configurar / mostrar links dos formulários', 'configurar')
     .addItem('2. Importar projetos do quadro atual', 'importarQuadroAtual')
     .addSeparator()
     .addItem('Atualizar quadro agora', 'atualizarTudo')
@@ -80,46 +80,86 @@ function onOpen() {
 
 function configurar() {
   const ui = SpreadsheetApp.getUi();
-  const props = PropertiesService.getDocumentProperties();
-  if (props.getProperty('FORM_APONT_ID')) {
-    ui.alert('Esta planilha já foi configurada. Os links dos formulários estão na aba "' + ABA_LINKS + '".');
-    return;
+  try {
+    configurar_(ui);
+  } catch (e) {
+    ui.alert('Erro na configuração', String(e && e.message ? e.message : e) +
+      '\n\nTire um print desta mensagem. Pode rodar o "1. Configurar" de novo: ele continua de onde parou.', ui.ButtonSet.OK);
   }
+}
 
+/**
+ * Pode ser rodado várias vezes: reaproveita os formulários já ligados à planilha
+ * e só refaz o que faltar (gatilhos, aba Links, quadro).
+ */
+function configurar_(ui) {
+  const props = PropertiesService.getDocumentProperties();
   const ss = SpreadsheetApp.getActive();
-  const formPlan = criarFormPlanejamento_();
-  const apont = criarFormApontamento_();
-  const formApont = apont.form;
 
-  formPlan.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-  formApont.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
-  renomearAbaDoForm_(ss, formPlan, ABA_PLAN);
-  renomearAbaDoForm_(ss, formApont, ABA_APONT);
+  let formPlan = formDaAba_(ss, ABA_PLAN);
+  if (!formPlan) {
+    formPlan = criarFormPlanejamento_();
+    formPlan.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+    renomearAbaDoForm_(ss, formPlan, ABA_PLAN);
+  }
+  let formApont = formDaAba_(SpreadsheetApp.getActive(), ABA_APONT);
+  if (!formApont) {
+    formApont = criarFormApontamento_();
+    formApont.setDestination(FormApp.DestinationType.SPREADSHEET, ss.getId());
+    renomearAbaDoForm_(ss, formApont, ABA_APONT);
+  }
+  const itemProjeto = itemPorTitulo_(formApont, TIT_PROJETO);
+  const itemEtapa = itemPorTitulo_(formApont, TIT_ETAPA);
 
   props.setProperties({
     FORM_PLAN_ID: formPlan.getId(),
     FORM_APONT_ID: formApont.getId(),
-    ITEM_PROJETO_ID: String(apont.itemProjetoId),
+    ITEM_PROJETO_ID: String(itemProjeto.getId()),
   });
 
-  ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
-  ScriptApp.newTrigger('aoEnviarFormulario').forSpreadsheet(ss).onFormSubmit().create();
-  // Atualiza todo dia de manhã para marcar como atrasado o que venceu.
-  ScriptApp.newTrigger('atualizarTudo').timeBased().everyDays(1).atHour(6).create();
+  escreverLinks_(SpreadsheetApp.getActive(), formPlan, formApont, itemEtapa.getId());
 
-  escreverLinks_(SpreadsheetApp.getActive(), formPlan, formApont, apont.itemEtapaId);
+  let avisoGatilho = '';
+  try {
+    ScriptApp.getProjectTriggers().forEach(function (t) { ScriptApp.deleteTrigger(t); });
+    ScriptApp.newTrigger('aoEnviarFormulario').forSpreadsheet(SpreadsheetApp.getActive()).onFormSubmit().create();
+    // Atualiza todo dia de manhã para marcar como atrasado o que venceu.
+    ScriptApp.newTrigger('atualizarTudo').timeBased().everyDays(1).atHour(6).create();
+  } catch (e) {
+    avisoGatilho = '\n\nATENÇÃO: não consegui criar a atualização automática (' + e.message + '). ' +
+      'Até resolver, use "Atualizar quadro agora" depois de cada lançamento.';
+  }
+
   atualizarTudo();
   removerAbasVazias_(SpreadsheetApp.getActive());
+  const links = SpreadsheetApp.getActive().getSheetByName(ABA_LINKS);
+  SpreadsheetApp.getActive().setActiveSheet(links);
 
   ui.alert(
     'Pronto!',
-    'Foram criados 2 formulários (no seu Google Drive):\n\n' +
-      '• Planejamento de Projetos — preenchido quando um projeto é liberado.\n' +
-      '• Apontamento de Produção — preenchido pela produção a cada início/fim de etapa.\n\n' +
-      'Os links e QR Codes estão na aba "' + ABA_LINKS + '".\n' +
-      'Para lançar os projetos que já estão no quadro, use o menu "2. Importar projetos do quadro atual".',
+    'Formulários prontos (ficam no seu Google Drive):\n\n' +
+      '• Planejamento de Projetos:\n' + formPlan.getPublishedUrl() + '\n\n' +
+      '• Apontamento de Produção:\n' + formApont.getPublishedUrl() + '\n\n' +
+      'Esses links e os QR Codes por etapa estão na aba "' + ABA_LINKS + '".\n' +
+      'Para lançar os projetos que já estão no quadro, use o menu "2. Importar projetos do quadro atual".' +
+      avisoGatilho,
     ui.ButtonSet.OK
   );
+}
+
+/** Formulário ligado a uma aba de respostas, ou null. */
+function formDaAba_(ss, nome) {
+  const sh = ss.getSheetByName(nome);
+  const url = sh ? sh.getFormUrl() : null;
+  return url ? FormApp.openByUrl(url) : null;
+}
+
+function itemPorTitulo_(form, titulo) {
+  const itens = form.getItems();
+  for (let i = 0; i < itens.length; i++) {
+    if (itens[i].getTitle().trim() === titulo) return itens[i];
+  }
+  throw new Error('Não achei a pergunta "' + titulo + '" no formulário "' + form.getTitle() + '".');
 }
 
 function criarFormPlanejamento_() {
@@ -154,11 +194,11 @@ function criarFormApontamento_() {
   );
   form.setConfirmationMessage('Apontamento registrado. Obrigado!');
 
-  const itemProjeto = form.addListItem()
+  form.addListItem()
     .setTitle(TIT_PROJETO)
     .setRequired(true)
     .setChoiceValues(['(nenhum projeto em aberto)']);
-  const itemEtapa = form.addListItem().setTitle(TIT_ETAPA).setRequired(true).setChoiceValues(ETAPAS);
+  form.addListItem().setTitle(TIT_ETAPA).setRequired(true).setChoiceValues(ETAPAS);
   form.addMultipleChoiceItem()
     .setTitle(TIT_EVENTO)
     .setHelpText('Liberação e Expedição têm uma data só: marque "Fim".')
@@ -168,7 +208,7 @@ function criarFormApontamento_() {
   form.addTextItem().setTitle(TIT_RESP);
   form.addParagraphTextItem().setTitle(TIT_OBS);
 
-  return { form: form, itemProjetoId: itemProjeto.getId(), itemEtapaId: itemEtapa.getId() };
+  return form;
 }
 
 /** Acha a aba de respostas criada pelo formulário e dá um nome fixo a ela. */

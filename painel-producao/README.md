@@ -50,9 +50,9 @@ Formulário "Apontamento de Produção"   ──┘             └─► aba "B
 2. Na planilha: **Extensões → Apps Script**.
 3. Apague o que estiver no editor, **cole todo o conteúdo de `Codigo.gs`** e clique em **Salvar** (💾).
 4. Volte para a planilha e **recarregue a página (F5)**. Vai aparecer o menu **Painel de Produção**.
-5. Clique em **Painel de Produção → 1. Configurar (criar formulários)**.
+5. Clique em **Painel de Produção → 1. Configurar / mostrar links dos formulários**.
    - O Google vai pedir autorização. Clique em **Continuar**, escolha sua conta e, se aparecer *"O Google não verificou este app"*, clique em **Avançado → Acessar (não seguro)**. É normal: o script é seu e não foi publicado.
-   - Rode o menu de novo depois de autorizar, se for preciso.
+   - Rode o menu de novo depois de autorizar, se for preciso. Ele pode ser rodado quantas vezes quiser: reaproveita os formulários já criados e refaz só o que faltar (inclusive a aba `Links`).
 6. (Opcional) **Painel de Produção → 2. Importar projetos do quadro atual**. Lança os projetos 0181, 0241 e 0045 com as datas da foto do quadro.
 7. Abra a aba **Links**:
    - Mande o link do **Planejamento** para quem libera os projetos (PCP).
