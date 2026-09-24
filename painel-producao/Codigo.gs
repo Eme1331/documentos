@@ -18,6 +18,8 @@ const ABA_APONT = 'Apontamentos';
 const ABA_QUADRO = 'Quadro';
 const ABA_BASE = 'Base';
 const ABA_LINKS = 'Links';
+const ABA_DASH = 'Dashboard';
+const ABA_DADOS_DASH = 'Dados do dashboard';
 
 const ETAPAS = ['Liberação', 'Beneficiamento', 'Montagem', 'Pintura', 'Embalagem', 'Expedição'];
 // Etapas com início e fim. As demais têm uma data só.
@@ -41,6 +43,21 @@ const COR_REAL_ATRASO = '#d93025';
 const FUNDO_PENDENTE_ATRASADO = '#fde2e1';
 const FUNDO_CABECALHO = '#f8f9fa';
 const BRANCO = '#ffffff';
+
+// Dashboard: uma cor fixa por etapa (sempre na mesma ordem) e cores de status.
+const CORES_ETAPA = {
+  'Liberação': '#2a78d6',
+  'Beneficiamento': '#eb6834',
+  'Montagem': '#1baf7a',
+  'Pintura': '#eda100',
+  'Embalagem': '#e87ba4',
+  'Expedição': '#008300',
+};
+const COR_STATUS_OK = '#0ca30c';
+const COR_STATUS_CRITICO = '#d03b3b';
+const COR_TEXTO = '#0b0b0b';
+const COR_TEXTO_2 = '#52514e';
+const COR_SUPERFICIE = '#fcfcfb';
 
 // Marcos = colunas de datas do quadro, na ordem.
 const MARCOS = (function () {
@@ -264,17 +281,19 @@ function escreverLinks_(ss, formPlan, formApont, itemEtapaId) {
 }
 
 function removerAbasVazias_(ss) {
-  const manter = [ABA_PLAN, ABA_APONT, ABA_QUADRO, ABA_BASE, ABA_LINKS];
+  const manter = [ABA_PLAN, ABA_APONT, ABA_QUADRO, ABA_BASE, ABA_LINKS, ABA_DASH, ABA_DADOS_DASH];
   ss.getSheets().forEach(function (sh) {
     if (manter.indexOf(sh.getName()) < 0 && sh.getLastRow() === 0 && ss.getSheets().length > 1) {
       ss.deleteSheet(sh);
     }
   });
-  const quadro = ss.getSheetByName(ABA_QUADRO);
-  if (quadro) {
-    ss.setActiveSheet(quadro);
-    ss.moveActiveSheet(1);
-  }
+  [ABA_QUADRO, ABA_DASH].forEach(function (nome) {
+    const sh = ss.getSheetByName(nome);
+    if (sh) {
+      ss.setActiveSheet(sh);
+      ss.moveActiveSheet(1);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -312,6 +331,7 @@ function atualizarTudo() {
 
   escreverQuadro_(ss, lista, hoje, tz);
   escreverBase_(ss, lista, hoje, tz);
+  escreverDashboard_(ss, lista, hoje, tz);
   atualizarListaProjetos_(lista);
 }
 
@@ -554,6 +574,301 @@ function escreverBase_(ss, lista, hoje, tz) {
   sh.getRange(2, 7, Math.max(linhas.length - 1, 1), 2).setNumberFormat('dd/MM/yyyy');
   sh.getRange(1, 1, 1, linhas[0].length).setFontWeight('bold').setBackground(FUNDO_CABECALHO);
   sh.setFrozenRows(1);
+}
+
+// ---------------------------------------------------------------------------
+// Aba "Dashboard": indicadores, gráficos e linha do tempo (Gantt)
+// ---------------------------------------------------------------------------
+
+const DASH_COL_DIAS = 9;     // coluna onde começa a linha do tempo (I)
+const DASH_LARG_COL = 24;    // largura de todas as colunas (px)
+const DASH_LIN_GRAF = 9;     // linha onde ficam os gráficos
+const DASH_LIN_GANTT = 24;   // linha do título da linha do tempo
+const DASH_MAX_DIAS = 140;
+
+function escreverDashboard_(ss, lista, hoje, tz) {
+  const dados = escreverDadosDashboard_(ss, lista);
+  const sh = ss.getSheetByName(ABA_DASH) || ss.insertSheet(ABA_DASH, 0);
+  if (sh.getMaxColumns() < 60) sh.insertColumnsAfter(sh.getMaxColumns(), 60 - sh.getMaxColumns());
+
+  sh.getCharts().forEach(function (c) { sh.removeChart(c); });
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns()).breakApart();
+  sh.clear();
+  sh.setHiddenGridlines(true);
+  sh.setColumnWidth(1, 16);
+  sh.setColumnWidths(2, sh.getMaxColumns() - 1, DASH_LARG_COL);
+  sh.getRange(1, 1, sh.getMaxRows(), sh.getMaxColumns())
+    .setBackground(COR_SUPERFICIE).setFontColor(COR_TEXTO).setFontFamily('Arial');
+
+  sh.getRange(1, 2).setValue('DASHBOARD DE PRODUÇÃO').setFontSize(18).setFontWeight('bold');
+  sh.getRange(2, 2).setValue('Atualizado em ' + Utilities.formatDate(new Date(), tz, 'dd/MM/yyyy HH:mm') +
+    '  ·  atualiza sozinho a cada formulário enviado').setFontColor(COR_TEXTO_2);
+
+  escreverIndicadores_(sh, lista);
+  inserirGraficos_(sh, dados);
+  escreverGantt_(sh, lista, hoje, tz);
+  sh.setFrozenRows(2);
+}
+
+/** Tabelas que alimentam os gráficos (aba "Dados do dashboard"). */
+function escreverDadosDashboard_(ss, lista) {
+  const sh = ss.getSheetByName(ABA_DADOS_DASH) || ss.insertSheet(ABA_DADOS_DASH, ss.getNumSheets());
+  sh.clear();
+  const ativos = lista.filter(function (p) { return !p.analise.concluido; });
+
+  // A: projetos em aberto por etapa atual
+  const porEtapa = [['Etapa atual', 'Projetos']];
+  ETAPAS.forEach(function (e) {
+    porEtapa.push([e, ativos.filter(function (p) { return p.analise.etapaAtual === e; }).length]);
+  });
+  sh.getRange(1, 1, porEtapa.length, 2).setValues(porEtapa);
+
+  // D: duração média (dias) prevista × real, só de etapas já concluídas
+  const duracao = [['Etapa', 'Previsto', 'Real']];
+  let temDuracao = false;
+  ETAPAS.filter(function (e) { return DUPLAS[e]; }).forEach(function (e) {
+    const iIni = indiceMarco_(e, 'Início'), iFim = indiceMarco_(e, 'Fim');
+    let somaPlan = 0, somaReal = 0, n = 0;
+    lista.forEach(function (p) {
+      if (p.real[iIni] === null || p.real[iFim] === null || p.plan[iIni] === null || p.plan[iFim] === null) return;
+      somaPlan += p.plan[iFim] - p.plan[iIni] + 1;
+      somaReal += p.real[iFim] - p.real[iIni] + 1;
+      n++;
+    });
+    if (n) temDuracao = true;
+    duracao.push([e, n ? Math.round(somaPlan / n * 10) / 10 : 0, n ? Math.round(somaReal / n * 10) / 10 : 0]);
+  });
+  sh.getRange(1, 4, duracao.length, 3).setValues(duracao);
+
+  // H: atraso por projeto em aberto (maior primeiro)
+  const atrasos = [['Projeto', 'Atraso (dias)']];
+  ativos.slice()
+    .sort(function (a, b) { return b.analise.atraso - a.analise.atraso; })
+    .forEach(function (p) { atrasos.push([p.num + ' ' + p.nome, p.analise.atraso]); });
+  sh.getRange(1, 8, atrasos.length, 2).setValues(atrasos);
+
+  sh.getRange(1, 1, 1, 9).setFontWeight('bold');
+  sh.getRange(1, 1).setNote('Aba gerada automaticamente para os gráficos do Dashboard. Não edite.');
+  return {
+    sh: sh,
+    porEtapa: sh.getRange(1, 1, porEtapa.length, 2),
+    duracao: sh.getRange(1, 4, duracao.length, 3),
+    temDuracao: temDuracao,
+    atrasos: sh.getRange(1, 8, atrasos.length, 2),
+    nAtrasos: atrasos.length - 1,
+  };
+}
+
+function escreverIndicadores_(sh, lista) {
+  const ativos = lista.filter(function (p) { return !p.analise.concluido; });
+  const atrasados = ativos.filter(function (p) { return p.analise.atraso > 0; });
+  const expedidos = lista.length - ativos.length;
+  const pior = atrasados.slice().sort(function (a, b) { return b.analise.atraso - a.analise.atraso; })[0];
+  const pct = ativos.length ? Math.round((ativos.length - atrasados.length) / ativos.length * 100) : 0;
+
+  const cards = [
+    { rotulo: 'Em aberto', valor: ativos.length, legenda: 'projetos em produção', cor: COR_TEXTO },
+    { rotulo: '⚠ Atrasados', valor: atrasados.length, legenda: 'de ' + ativos.length + ' em aberto',
+      cor: atrasados.length ? COR_STATUS_CRITICO : COR_TEXTO },
+    { rotulo: '✓ No prazo', valor: ativos.length - atrasados.length, legenda: pct + '% em dia', cor: COR_STATUS_OK },
+    { rotulo: 'Expedidos', valor: expedidos, legenda: 'projetos concluídos', cor: COR_TEXTO },
+    { rotulo: 'Maior atraso', valor: pior ? pior.analise.atraso + ' d' : '0 d',
+      legenda: pior ? pior.num + ' – ' + pior.nome : 'nenhum atraso', cor: pior ? COR_STATUS_CRITICO : COR_TEXTO },
+  ];
+  const larg = 6, linha = 4;
+  cards.forEach(function (c, k) {
+    const col = 2 + k * (larg + 1);
+    sh.getRange(linha, col, 1, larg).merge().setValue(c.rotulo)
+      .setFontColor(COR_TEXTO_2).setFontSize(10).setFontWeight('bold');
+    sh.getRange(linha + 1, col, 2, larg).merge().setValue(c.valor)
+      .setFontColor(c.cor).setFontSize(26).setFontWeight('bold').setVerticalAlignment('middle')
+      .setHorizontalAlignment('left');
+    sh.getRange(linha + 3, col, 1, larg).merge().setValue(c.legenda)
+      .setFontColor(COR_TEXTO_2).setFontSize(9);
+    sh.getRange(linha, col, 4, larg).setBackground(BRANCO)
+      .setBorder(true, true, true, true, false, false, '#e0e0dc', SpreadsheetApp.BorderStyle.SOLID);
+  });
+}
+
+function inserirGraficos_(sh, dados) {
+  const larg = 400, alt = 250;
+  const eixo = { textStyle: { color: COR_TEXTO_2, fontSize: 10 }, gridlines: { color: '#ececea' },
+    baselineColor: '#c3c2b7', minValue: 0, format: '0' };
+  const titulo = { color: COR_TEXTO, fontSize: 12, bold: true };
+
+  sh.insertChart(sh.newChart().asColumnChart()
+    .addRange(dados.porEtapa).setNumHeaders(1)
+    .setPosition(DASH_LIN_GRAF, 2, 0, 0)
+    .setOption('title', 'Projetos em aberto por etapa atual')
+    .setOption('titleTextStyle', titulo)
+    .setOption('legend', { position: 'none' })
+    .setOption('colors', [CORES_ETAPA['Liberação']])
+    .setOption('vAxis', eixo)
+    .setOption('series', { 0: { dataLabel: 'value' } })
+    .setOption('width', larg).setOption('height', alt)
+    .build());
+
+  sh.insertChart(sh.newChart().asColumnChart()
+    .addRange(dados.duracao).setNumHeaders(1)
+    .setPosition(DASH_LIN_GRAF, 2 + 17, 0, 0)
+    .setOption('title', dados.temDuracao
+      ? 'Duração média por etapa (dias): previsto × real'
+      : 'Duração média por etapa (aparece quando alguma etapa terminar)')
+    .setOption('titleTextStyle', titulo)
+    .setOption('legend', { position: 'top', textStyle: { color: COR_TEXTO_2 } })
+    .setOption('colors', ['#9ec5f4', '#1c5cab'])
+    .setOption('vAxis', eixo)
+    .setOption('series', { 0: { dataLabel: 'value' }, 1: { dataLabel: 'value' } })
+    .setOption('width', larg).setOption('height', alt)
+    .build());
+
+  if (dados.nAtrasos > 0) {
+    sh.insertChart(sh.newChart().asBarChart()
+      .addRange(dados.atrasos).setNumHeaders(1)
+      .setPosition(DASH_LIN_GRAF, 2 + 34, 0, 0)
+      .setOption('title', 'Atraso por projeto em aberto (dias)')
+      .setOption('titleTextStyle', titulo)
+      .setOption('legend', { position: 'none' })
+      .setOption('colors', [COR_STATUS_CRITICO])
+      .setOption('hAxis', eixo)
+      .setOption('series', { 0: { dataLabel: 'value' } })
+      .setOption('width', larg).setOption('height', alt)
+      .build());
+  } else {
+    sh.getRange(DASH_LIN_GRAF + 1, 2 + 34).setValue('Nenhum projeto em aberto.').setFontColor(COR_TEXTO_2);
+  }
+}
+
+/** Linha do tempo: por projeto, uma linha "Previsto" e uma "Real", cada dia colorido pela etapa. */
+function escreverGantt_(sh, lista, hoje, tz) {
+  const r0 = DASH_LIN_GANTT;
+  sh.getRange(r0, 2).setValue('LINHA DO TEMPO').setFontSize(13).setFontWeight('bold');
+  sh.getRange(r0, 10).setValue('Previsto = cor clara · Real = cor forte · coluna vermelha = hoje · letra = início da etapa')
+    .setFontColor(COR_TEXTO_2).setFontSize(9);
+
+  // Legenda (cor + nome, nunca só cor)
+  let col = 2;
+  ETAPAS.forEach(function (e) {
+    sh.getRange(r0 + 1, col).setBackground(CORES_ETAPA[e]).setValue(e.charAt(0))
+      .setFontColor(corTextoSobre_(CORES_ETAPA[e])).setHorizontalAlignment('center').setFontWeight('bold');
+    sh.getRange(r0 + 1, col + 1).setValue(e).setFontSize(9).setFontColor(COR_TEXTO_2);
+    col += 6;
+  });
+
+  const ativos = lista.filter(function (p) { return !p.analise.concluido; });
+  const mostrar = ativos.length ? ativos : lista;
+  if (!mostrar.length) {
+    sh.getRange(r0 + 3, 2).setValue('Nenhum projeto cadastrado ainda.').setFontColor(COR_TEXTO_2);
+    return;
+  }
+
+  // Período exibido
+  let ini = hoje, fim = hoje;
+  mostrar.forEach(function (p) {
+    p.plan.concat(p.real).forEach(function (d) {
+      if (d === null) return;
+      if (d < ini) ini = d;
+      if (d > fim) fim = d;
+    });
+  });
+  ini -= 2; fim += 3;
+  if (fim - ini + 1 > DASH_MAX_DIAS) {
+    ini = Math.max(ini, hoje - 45);
+    fim = ini + DASH_MAX_DIAS - 1;
+  }
+  const nDias = fim - ini + 1;
+  const precisa = DASH_COL_DIAS + nDias;
+  if (sh.getMaxColumns() < precisa) {
+    const antes = sh.getMaxColumns();
+    sh.insertColumnsAfter(antes, precisa - antes);
+    sh.setColumnWidths(antes + 1, precisa - antes, DASH_LARG_COL);
+  }
+
+  // Cabeçalho de datas: dd/MM nas segundas-feiras, número do dia em todas as colunas
+  const linSemana = r0 + 3, linDia = r0 + 4;
+  const semana = [], dia = [];
+  for (let d = ini; d <= fim; d++) {
+    const data = diaParaData_(d, tz);
+    const segunda = Utilities.formatDate(data, tz, 'u') === '1';
+    semana.push(d === hoje ? 'HOJE' : segunda ? Utilities.formatDate(data, tz, 'dd/MM') : '');
+    dia.push(Utilities.formatDate(data, tz, 'dd'));
+  }
+  sh.getRange(linSemana, DASH_COL_DIAS, 1, nDias).setValues([semana])
+    .setFontSize(9).setFontColor(COR_TEXTO_2).setFontWeight('bold');
+  sh.getRange(linDia, DASH_COL_DIAS, 1, nDias).setValues([dia])
+    .setFontSize(8).setFontColor(COR_TEXTO_2).setHorizontalAlignment('center');
+  sh.getRange(linSemana, DASH_COL_DIAS + (hoje - ini)).setFontColor(COR_STATUS_CRITICO);
+  sh.getRange(linSemana, 2).setValue('Projeto').setFontWeight('bold').setFontColor(COR_TEXTO_2);
+
+  // Barras
+  const linIni = linDia + 1;
+  const valores = [], fundos = [], cores = [];
+  mostrar.forEach(function (p) {
+    [['plan', true], ['real', false]].forEach(function (t) {
+      const v = [], f = [], c = [];
+      for (let k = 0; k < nDias; k++) { v.push(''); f.push(BRANCO); c.push(COR_TEXTO); }
+      segmentos_(p[t[0]], t[0] === 'real' ? hoje : null).forEach(function (s) {
+        const base = CORES_ETAPA[s.etapa];
+        const cor = t[1] ? clarear_(base, 0.6) : base;
+        const a = Math.max(s.ini, ini), b = Math.min(s.fim, fim);
+        for (let d = a; d <= b; d++) f[d - ini] = cor;
+        if (s.ini >= ini && s.ini <= fim) {
+          v[s.ini - ini] = s.etapa.charAt(0);
+          c[s.ini - ini] = corTextoSobre_(cor);
+        }
+      });
+      valores.push(v); fundos.push(f); cores.push(c);
+    });
+  });
+  const grade = sh.getRange(linIni, DASH_COL_DIAS, valores.length, nDias);
+  grade.setValues(valores).setBackgrounds(fundos).setFontColors(cores)
+    .setFontSize(8).setFontWeight('bold').setHorizontalAlignment('center').setVerticalAlignment('middle');
+  grade.setBorder(null, null, true, null, null, true, '#ececea', SpreadsheetApp.BorderStyle.SOLID);
+
+  // Rótulos das linhas
+  mostrar.forEach(function (p, k) {
+    const r = linIni + k * 2;
+    sh.getRange(r, 2, 2, 5).merge().setValue(p.num + '\n' + p.nome)
+      .setFontWeight('bold').setFontSize(9).setWrap(true).setVerticalAlignment('middle')
+      .setFontColor(p.analise.atraso > 0 ? COR_STATUS_CRITICO : COR_TEXTO);
+    sh.getRange(r, 7, 1, 2).merge().setValue('Previsto').setFontSize(8).setFontColor(COR_TEXTO_2);
+    sh.getRange(r + 1, 7, 1, 2).merge().setValue('Real').setFontSize(8).setFontColor(COR_TEXTO_2);
+    sh.getRange(r, 2, 2, DASH_COL_DIAS - 2 + nDias)
+      .setBorder(null, null, true, null, null, null, '#c3c2b7', SpreadsheetApp.BorderStyle.SOLID);
+  });
+
+  // Hoje
+  sh.getRange(linSemana, DASH_COL_DIAS + (hoje - ini), valores.length + 2, 1)
+    .setBorder(null, true, null, true, null, null, COR_STATUS_CRITICO, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+}
+
+/** Trechos [ini, fim] de cada etapa. No "real", etapa começada e não terminada vai até hoje. */
+function segmentos_(datas, hoje) {
+  const seg = [];
+  ETAPAS.forEach(function (e) {
+    if (!DUPLAS[e]) {
+      const d = datas[indiceMarco_(e, 'Fim')];
+      if (d !== null) seg.push({ etapa: e, ini: d, fim: d });
+      return;
+    }
+    const a = datas[indiceMarco_(e, 'Início')], b = datas[indiceMarco_(e, 'Fim')];
+    if (a !== null && b !== null) seg.push({ etapa: e, ini: Math.min(a, b), fim: Math.max(a, b) });
+    else if (a !== null) seg.push({ etapa: e, ini: a, fim: hoje !== null ? Math.max(a, hoje) : a });
+    else if (b !== null) seg.push({ etapa: e, ini: b, fim: b });
+  });
+  return seg;
+}
+
+function clarear_(hex, t) {
+  const n = parseInt(hex.slice(1), 16);
+  const canal = function (v) { return Math.round(v + (255 - v) * t).toString(16).padStart(2, '0'); };
+  return '#' + canal((n >> 16) & 255) + canal((n >> 8) & 255) + canal(n & 255);
+}
+
+function corTextoSobre_(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? COR_TEXTO : BRANCO;
 }
 
 // ---------------------------------------------------------------------------
