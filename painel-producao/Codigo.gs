@@ -13,7 +13,7 @@
 // Configuração
 // ---------------------------------------------------------------------------
 
-const VERSAO = '3 (com Dashboard)';
+const VERSAO = '4 (Gantt no topo)';
 
 const ABA_PLAN = 'Planejamento';
 const ABA_APONT = 'Apontamentos';
@@ -604,8 +604,7 @@ function escreverBase_(ss, lista, hoje, tz) {
 
 const DASH_COL_DIAS = 9;     // coluna onde começa a linha do tempo (I)
 const DASH_LARG_COL = 24;    // largura de todas as colunas (px)
-const DASH_LIN_GRAF = 9;     // linha onde ficam os gráficos
-const DASH_LIN_GANTT = 24;   // linha do título da linha do tempo
+const DASH_LIN_GANTT = 9;    // linha do título da linha do tempo (logo abaixo dos indicadores)
 const DASH_MAX_DIAS = 140;
 
 function escreverDashboard_(ss, lista, hoje, tz) {
@@ -627,9 +626,20 @@ function escreverDashboard_(ss, lista, hoje, tz) {
     '  ·  atualiza sozinho a cada formulário enviado').setFontColor(COR_TEXTO_2);
 
   escreverIndicadores_(sh, lista);
-  inserirGraficos_(sh, dados);
-  escreverGantt_(sh, lista, hoje, tz);
   sh.setFrozenRows(2);
+  SpreadsheetApp.flush();
+
+  // Linha do tempo logo abaixo dos indicadores; gráficos embaixo dela.
+  let fimGantt;
+  try {
+    fimGantt = escreverGantt_(sh, lista, hoje, tz);
+  } catch (e) {
+    sh.getRange(DASH_LIN_GANTT, 2).setValue('Erro ao montar a linha do tempo: ' + e.message +
+      ' — tire um print e envie para quem mantém o script.').setFontColor(COR_STATUS_CRITICO).setFontWeight('bold');
+    fimGantt = DASH_LIN_GANTT + 1;
+  }
+  SpreadsheetApp.flush();
+  inserirGraficos_(sh, dados, fimGantt + 2);
 }
 
 /** Tabelas que alimentam os gráficos (aba "Dados do dashboard"). */
@@ -713,7 +723,7 @@ function escreverIndicadores_(sh, lista) {
   });
 }
 
-function inserirGraficos_(sh, dados) {
+function inserirGraficos_(sh, dados, linha) {
   const larg = 400, alt = 250;
   const eixo = { textStyle: { color: COR_TEXTO_2, fontSize: 10 }, gridlines: { color: '#ececea' },
     baselineColor: '#c3c2b7', minValue: 0, format: '0' };
@@ -721,7 +731,7 @@ function inserirGraficos_(sh, dados) {
 
   sh.insertChart(sh.newChart().asColumnChart()
     .addRange(dados.porEtapa).setNumHeaders(1)
-    .setPosition(DASH_LIN_GRAF, 2, 0, 0)
+    .setPosition(linha, 2, 0, 0)
     .setOption('title', 'Projetos em aberto por etapa atual')
     .setOption('titleTextStyle', titulo)
     .setOption('legend', { position: 'none' })
@@ -733,7 +743,7 @@ function inserirGraficos_(sh, dados) {
 
   sh.insertChart(sh.newChart().asColumnChart()
     .addRange(dados.duracao).setNumHeaders(1)
-    .setPosition(DASH_LIN_GRAF, 2 + 17, 0, 0)
+    .setPosition(linha, 2 + 17, 0, 0)
     .setOption('title', dados.temDuracao
       ? 'Duração média por etapa (dias): previsto × real'
       : 'Duração média por etapa (aparece quando alguma etapa terminar)')
@@ -748,7 +758,7 @@ function inserirGraficos_(sh, dados) {
   if (dados.nAtrasos > 0) {
     sh.insertChart(sh.newChart().asBarChart()
       .addRange(dados.atrasos).setNumHeaders(1)
-      .setPosition(DASH_LIN_GRAF, 2 + 34, 0, 0)
+      .setPosition(linha, 2 + 34, 0, 0)
       .setOption('title', 'Atraso por projeto em aberto (dias)')
       .setOption('titleTextStyle', titulo)
       .setOption('legend', { position: 'none' })
@@ -758,7 +768,7 @@ function inserirGraficos_(sh, dados) {
       .setOption('width', larg).setOption('height', alt)
       .build());
   } else {
-    sh.getRange(DASH_LIN_GRAF + 1, 2 + 34).setValue('Nenhum projeto em aberto.').setFontColor(COR_TEXTO_2);
+    sh.getRange(linha + 1, 2 + 34).setValue('Nenhum projeto em aberto.').setFontColor(COR_TEXTO_2);
   }
 }
 
@@ -782,7 +792,7 @@ function escreverGantt_(sh, lista, hoje, tz) {
   const mostrar = ativos.length ? ativos : lista;
   if (!mostrar.length) {
     sh.getRange(r0 + 3, 2).setValue('Nenhum projeto cadastrado ainda.').setFontColor(COR_TEXTO_2);
-    return;
+    return r0 + 3;
   }
 
   // Período exibido
@@ -812,7 +822,7 @@ function escreverGantt_(sh, lista, hoje, tz) {
   const semana = [], dia = [];
   for (let d = ini; d <= fim; d++) {
     const data = diaParaData_(d, tz);
-    const segunda = Utilities.formatDate(data, tz, 'u') === '1';
+    const segunda = (((d - 4) % 7) + 7) % 7 === 0; // dia 4 (05/01/1970) foi segunda-feira
     semana.push(d === hoje ? 'HOJE' : segunda ? Utilities.formatDate(data, tz, 'dd/MM') : '');
     dia.push(Utilities.formatDate(data, tz, 'dd'));
   }
@@ -863,6 +873,7 @@ function escreverGantt_(sh, lista, hoje, tz) {
   // Hoje
   sh.getRange(linSemana, DASH_COL_DIAS + (hoje - ini), valores.length + 2, 1)
     .setBorder(null, true, null, true, null, null, COR_STATUS_CRITICO, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+  return linIni + valores.length - 1;
 }
 
 /** Trechos [ini, fim] de cada etapa. No "real", etapa começada e não terminada vai até hoje. */
@@ -884,7 +895,7 @@ function segmentos_(datas, hoje) {
 
 function clarear_(hex, t) {
   const n = parseInt(hex.slice(1), 16);
-  const canal = function (v) { return Math.round(v + (255 - v) * t).toString(16).padStart(2, '0'); };
+  const canal = function (v) { return ('0' + Math.round(v + (255 - v) * t).toString(16)).slice(-2); };
   return '#' + canal((n >> 16) & 255) + canal((n >> 8) & 255) + canal(n & 255);
 }
 
