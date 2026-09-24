@@ -13,6 +13,8 @@
 // Configuração
 // ---------------------------------------------------------------------------
 
+const VERSAO = '3 (com Dashboard)';
+
 const ABA_PLAN = 'Planejamento';
 const ABA_APONT = 'Apontamentos';
 const ABA_QUADRO = 'Quadro';
@@ -87,8 +89,28 @@ function onOpen() {
     .addItem('1. Configurar / mostrar links dos formulários', 'configurar')
     .addItem('2. Importar projetos do quadro atual', 'importarQuadroAtual')
     .addSeparator()
-    .addItem('Atualizar quadro agora', 'atualizarTudo')
+    .addItem('Atualizar quadro e dashboard agora', 'atualizarAgora')
+    .addSeparator()
+    .addItem('Versão do script: ' + VERSAO, 'mostrarVersao')
     .addToUi();
+}
+
+function mostrarVersao() {
+  SpreadsheetApp.getUi().alert('Versão do script: ' + VERSAO);
+}
+
+/** Pelo menu: mostra o erro numa janela, em vez de só um aviso rápido no topo da tela. */
+function atualizarAgora() {
+  const ui = SpreadsheetApp.getUi();
+  try {
+    atualizarTudo();
+    const dash = SpreadsheetApp.getActive().getSheetByName(ABA_DASH);
+    if (dash) SpreadsheetApp.getActive().setActiveSheet(dash);
+    SpreadsheetApp.getActive().toast('Quadro e dashboard atualizados.', 'Painel de Produção', 5);
+  } catch (e) {
+    ui.alert('Erro ao atualizar', String(e && e.stack ? e.message + '\n\n' + e.stack : e) +
+      '\n\nTire um print desta mensagem.', ui.ButtonSet.OK);
+  }
 }
 
 // ---------------------------------------------------------------------------

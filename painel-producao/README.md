@@ -62,7 +62,7 @@ Formulário "Apontamento de Produção"   ──┘             └─► aba "B
 
 > Os formulários ficam no seu Google Drive e podem ser editados à vontade (textos, cores, logo). **Não mude o título das perguntas**: é por ele que a planilha reconhece cada coluna.
 
-A atualização é automática a cada resposta e também **todo dia às 6h** (para marcar como atrasado o que venceu). Se quiser forçar: **Painel de Produção → Atualizar quadro agora**.
+A atualização é automática a cada resposta e também **todo dia às 6h** (para marcar como atrasado o que venceu). Se quiser forçar: **Painel de Produção → Atualizar quadro e dashboard agora**.
 
 ---
 
