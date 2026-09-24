@@ -13,7 +13,7 @@
 // Configuração
 // ---------------------------------------------------------------------------
 
-const VERSAO = '4 (Gantt no topo)';
+const VERSAO = '5 (Gantt abaixo dos gráficos)';
 
 const ABA_PLAN = 'Planejamento';
 const ABA_APONT = 'Apontamentos';
@@ -604,7 +604,8 @@ function escreverBase_(ss, lista, hoje, tz) {
 
 const DASH_COL_DIAS = 9;     // coluna onde começa a linha do tempo (I)
 const DASH_LARG_COL = 24;    // largura de todas as colunas (px)
-const DASH_LIN_GANTT = 9;    // linha do título da linha do tempo (logo abaixo dos indicadores)
+const DASH_LIN_GRAF = 9;     // linha onde ficam os gráficos
+const DASH_LIN_GANTT = 24;   // linha do título da linha do tempo (abaixo dos gráficos)
 const DASH_MAX_DIAS = 140;
 
 function escreverDashboard_(ss, lista, hoje, tz) {
@@ -629,17 +630,16 @@ function escreverDashboard_(ss, lista, hoje, tz) {
   sh.setFrozenRows(2);
   SpreadsheetApp.flush();
 
-  // Linha do tempo logo abaixo dos indicadores; gráficos embaixo dela.
-  let fimGantt;
+  inserirGraficos_(sh, dados, DASH_LIN_GRAF);
+  SpreadsheetApp.flush();
+
+  // Linha do tempo abaixo dos gráficos.
   try {
-    fimGantt = escreverGantt_(sh, lista, hoje, tz);
+    escreverGantt_(sh, lista, hoje, tz);
   } catch (e) {
     sh.getRange(DASH_LIN_GANTT, 2).setValue('Erro ao montar a linha do tempo: ' + e.message +
       ' — tire um print e envie para quem mantém o script.').setFontColor(COR_STATUS_CRITICO).setFontWeight('bold');
-    fimGantt = DASH_LIN_GANTT + 1;
   }
-  SpreadsheetApp.flush();
-  inserirGraficos_(sh, dados, fimGantt + 2);
 }
 
 /** Tabelas que alimentam os gráficos (aba "Dados do dashboard"). */
