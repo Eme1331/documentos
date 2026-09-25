@@ -109,42 +109,47 @@ def cenario(wb, nome, titulo, param, processos, nota):
     ws.freeze_panes = 'B17'
     return ws
 
+def montar_cenarios(wb):
+    atual = cenario(wb, 'Estado Atual', 'MFV Estado Atual — Thundercats Painéis (família Lion)',
+        [170, 20, 1, 8.8, 0, 10],
+        [['Puncionadeira', 1, 4080, 4, 2, 0.75, None, 35, 'S'],
+         ['Dobradeira', 1, 3812, 4, 2, 0.62, None, 13, 'S'],
+         ['Pré Montagem', 1, 822, None, 1, None, 477, 30, 'S'],
+         ['Montagem', 1, 850, None, 1, None, 477, 25, 'S']],
+        'Dados da prova. Premissa: o TC é por painel (só assim os 2 turnos da Puncionadeira e da Dobradeira se explicam).')
+    atual['A20'].comment = Comment('Prova não informa pausas: considerado 0 min (8,8 h líquidas).', 'VSM')
+
+    fut = cenario(wb, 'Estado Futuro', 'MFV Estado Futuro — proposta (edite as metas)',
+        [170, 20, 1, 8.8, 0, 9],
+        [['Puncionadeira (TPM + SMED)', 1, 4080, 2, 2, 0.85, None, 17, 'S'],
+         ['Dobradeira (TPM + SMED) — FIFO máx. 1 lote', 1, 3812, 2, 2, 0.85, None, 4, 'S'],
+         ['Célula Pré Montagem + Montagem (puxador) — supermercado antes', 1, 1672, 1, 1, None, None, 9, 'S']],
+        'Metas propostas: OEE 85%, lote 2, MP 2 dias (17), FIFO 4, supermercado 1 dia (9), produto acabado 1 dia (9). Ajuste nas células amarelas.')
+
+    ws = wb.create_sheet('Fórmulas')
+    cabecalho(ws, 1, ['Indicador', 'Fórmula', 'Observação'])
+    linhas = [
+        ('Demanda diária', 'Demanda mensal ÷ Dias úteis', ''),
+        ('Tempo disponível', 'Turnos × (Horas × 3600 − Pausas × 60)', 'Segundos por dia'),
+        ('Takt time', 'Tempo disponível ÷ Demanda diária', 'Ritmo exigido pelo cliente (turnos da planta)'),
+        ('TC efetivo', 'TC ÷ OEE', 'Quanto o processo realmente leva, com as perdas'),
+        ('Capacidade', 'Tempo do turno × Turnos do processo × OEE ÷ TC', 'Peças por dia'),
+        ('Carga', 'Demanda diária ÷ Capacidade', '> 100% = não atende; gargalo = maior carga'),
+        ('Espera no estoque', 'Estoque ÷ Demanda diária', 'Dias (Lei de Little)'),
+        ('Lead time', 'Σ esperas + produto acabado', 'Dias'),
+        ('TP', 'Σ TC', 'Segundos'),
+        ('PCE', 'Tempo VA ÷ Lead time', 'Diga qual base usou: horas de trabalho ou 24 h'),
+        ('Operadores', 'Σ TC ÷ Takt', 'Arredondar para cima'),
+    ]
+    for i, l in enumerate(linhas):
+        for j, v in enumerate(l):
+            ws.cell(2 + i, 1 + j, v).font = NORMAL
+    for col, w in zip('ABC', (22, 48, 50)):
+        ws.column_dimensions[col].width = w
+
+
+from layout_takt import montar_takt
 wb = Workbook(); wb.remove(wb.active)
-atual = cenario(wb, 'Estado Atual', 'MFV Estado Atual — Thundercats Painéis (família Lion)',
-    [170, 20, 1, 8.8, 0, 10],
-    [['Puncionadeira', 1, 4080, 4, 2, 0.75, None, 35, 'S'],
-     ['Dobradeira', 1, 3812, 4, 2, 0.62, None, 13, 'S'],
-     ['Pré Montagem', 1, 822, None, 1, None, 477, 30, 'S'],
-     ['Montagem', 1, 850, None, 1, None, 477, 25, 'S']],
-    'Dados da prova. Premissa: o TC é por painel (só assim os 2 turnos da Puncionadeira e da Dobradeira se explicam).')
-atual['A20'].comment = Comment('Prova não informa pausas: considerado 0 min (8,8 h líquidas).', 'VSM')
-
-fut = cenario(wb, 'Estado Futuro', 'MFV Estado Futuro — proposta (edite as metas)',
-    [170, 20, 1, 8.8, 0, 9],
-    [['Puncionadeira (TPM + SMED)', 1, 4080, 2, 2, 0.85, None, 17, 'S'],
-     ['Dobradeira (TPM + SMED) — FIFO máx. 1 lote', 1, 3812, 2, 2, 0.85, None, 4, 'S'],
-     ['Célula Pré Montagem + Montagem (puxador) — supermercado antes', 1, 1672, 1, 1, None, None, 9, 'S']],
-    'Metas propostas: OEE 85%, lote 2, MP 2 dias (17), FIFO 4, supermercado 1 dia (9), produto acabado 1 dia (9). Ajuste nas células amarelas.')
-
-ws = wb.create_sheet('Fórmulas')
-cabecalho(ws, 1, ['Indicador', 'Fórmula', 'Observação'])
-linhas = [
-    ('Demanda diária', 'Demanda mensal ÷ Dias úteis', ''),
-    ('Tempo disponível', 'Turnos × (Horas × 3600 − Pausas × 60)', 'Segundos por dia'),
-    ('Takt time', 'Tempo disponível ÷ Demanda diária', 'Ritmo exigido pelo cliente (turnos da planta)'),
-    ('TC efetivo', 'TC ÷ OEE', 'Quanto o processo realmente leva, com as perdas'),
-    ('Capacidade', 'Tempo do turno × Turnos do processo × OEE ÷ TC', 'Peças por dia'),
-    ('Carga', 'Demanda diária ÷ Capacidade', '> 100% = não atende; gargalo = maior carga'),
-    ('Espera no estoque', 'Estoque ÷ Demanda diária', 'Dias (Lei de Little)'),
-    ('Lead time', 'Σ esperas + produto acabado', 'Dias'),
-    ('TP', 'Σ TC', 'Segundos'),
-    ('PCE', 'Tempo VA ÷ Lead time', 'Diga qual base usou: horas de trabalho ou 24 h'),
-    ('Operadores', 'Σ TC ÷ Takt', 'Arredondar para cima'),
-]
-for i, l in enumerate(linhas):
-    for j, v in enumerate(l):
-        ws.cell(2 + i, 1 + j, v).font = NORMAL
-for col, w in zip('ABC', (22, 48, 50)):
-    ws.column_dimensions[col].width = w
-
+montar_takt(wb)
+montar_cenarios(wb)
 wb.save('/home/user/documentos/vsm-planilha/VSM_Thundercats.xlsx')
