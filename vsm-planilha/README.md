@@ -30,7 +30,7 @@ lead time 23,6 dias, VA 188 s, 4 operadores, gargalo Montagem 1 (62 s).
 |---|---|
 | `VSM_TEMPO_DISPONIVEL(turnos; horas; pausas_min)` | `=VSM_TEMPO_DISPONIVEL(2; 8; 20)` → 55200 |
 | `VSM_TAKT(tempo_disp_s; demanda_diaria)` | `=VSM_TAKT(55200; 920)` → 60 |
-| `VSM_LEAD_TIME(faixa_estoques; demanda_diaria)` | `=VSM_LEAD_TIME(F2:F7; 920)` → dias |
+| `VSM_LEAD_TIME(faixa_estoques; demanda_diaria)` | `=VSM_LEAD_TIME(G2:G6; 920) + PA ÷ 920` → dias |
 | `VSM_PCE(va_s; lead_time_dias; tempo_disp_s)` | formate como % |
 | `VSM_OPERADORES(faixa_TCs; takt)` | `=VSM_OPERADORES(B2:B6; 60)` → 4 |
 
