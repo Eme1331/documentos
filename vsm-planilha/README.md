@@ -15,6 +15,9 @@ PCE, número de operadores, gargalo e gráfico de balanceamento.
 
 - **Parâmetros**: demanda, dias úteis, turnos, horas, pausas e estoque de produto acabado.
 - **Processos**: um processo por linha, na ordem do fluxo. O estoque é o que fica *antes* do processo.
+  Use a coluna **Turnos** quando um processo trabalha em mais turnos que a planta
+  (o takt continua calculado com os turnos da planta; a carga usa os turnos do processo).
+  Na coluna **Disponibilidade** pode entrar o OEE.
 - Menu **VSM > Calcular** gera a aba **Resultados** com os indicadores, a tabela por processo e o gráfico.
 - A aba **Fórmulas** resume cada cálculo, para estudo.
 
@@ -30,6 +33,12 @@ lead time 23,6 dias, VA 188 s, 4 operadores, gargalo Montagem 1 (62 s).
 | `VSM_LEAD_TIME(faixa_estoques; demanda_diaria)` | `=VSM_LEAD_TIME(F2:F7; 920)` → dias |
 | `VSM_PCE(va_s; lead_time_dias; tempo_disp_s)` | formate como % |
 | `VSM_OPERADORES(faixa_TCs; takt)` | `=VSM_OPERADORES(B2:B6; 60)` → 4 |
+
+## Situação por processo
+
+- **OK**: TC efetivo (TC ÷ OEE) cabe no takt.
+- **OK SÓ COM TURNO EXTRA**: passa do takt, mas os turnos extras dão conta da demanda.
+- **NÃO ATENDE A DEMANDA**: carga acima de 100%.
 
 ## Convenções
 

@@ -41,3 +41,24 @@ assert.strictEqual(ctx.VSM_OPERADORES([[1], [39], [46], [62], [40]], 60), 4);
 assert.throws(() => ctx.calcularVSM({ demandaMensal: 0, diasUteis: 20, turnos: 1, horasTurno: 8 }, [{ nome: 'x', tc: 1 }]));
 
 console.log('OK: todos os testes passaram');
+
+// Estudo de caso Thundercats Painéis (família Lion). Puncionadeira e Dobradeira rodam 2 turnos.
+const t = ctx.calcularVSM(
+  { demandaMensal: 170, diasUteis: 20, turnos: 1, horasTurno: 8.8, pausasMin: 0, estoqueProdutoAcabado: 10 },
+  [
+    { nome: 'Puncionadeira', tc: 4080, disponibilidade: 0.75, operadores: 1, turnos: 2, estoqueAntes: 35, agregaValor: true },
+    { nome: 'Dobradeira', tc: 3812, disponibilidade: 0.62, operadores: 1, turnos: 2, estoqueAntes: 13, agregaValor: true },
+    { nome: 'Pré Montagem', tc: 822, operadores: 1, estoqueAntes: 30, agregaValor: true },
+    { nome: 'Montagem', tc: 850, operadores: 1, estoqueAntes: 25, agregaValor: true }
+  ]);
+perto(t.demandaDiaria, 8.5);
+perto(t.takt, 3727.06);
+perto(t.leadTimeDias, 13.294);
+assert.strictEqual(t.tempoProcessamento, 9564);
+assert.strictEqual(t.operadoresNecessarios, 3);
+assert.strictEqual(t.gargalo, 'Dobradeira');
+perto(t.processos[1].capacidadeDia, 10.30);
+perto(t.processos[1].carga, 0.825);
+assert.ok(t.processos[1].acimaDoTakt && !t.processos[1].naoAtende);
+
+console.log('OK: caso Thundercats');

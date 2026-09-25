@@ -19,16 +19,16 @@ const PARAMETROS = [
 
 const CABECALHO_PROCESSOS = [
   'Processo', 'Tempo de ciclo TC (s)', 'Setup TR (min)', 'Disponibilidade',
-  'Operadores', 'Estoque antes do processo (peças)', 'Agrega valor? (S/N)'
+  'Operadores', 'Turnos (vazio = da planta)', 'Estoque antes do processo (peças)', 'Agrega valor? (S/N)'
 ];
 
 // Exemplo clássico "Acme Stamping" (Rother & Shook, Aprendendo a Enxergar).
 const PROCESSOS_EXEMPLO = [
-  ['Estamparia', 1, 60, 0.85, 1, 4600, 'S'],
-  ['Solda 1', 39, 10, 1, 1, 7000, 'S'],
-  ['Solda 2', 46, 10, 0.8, 1, 1700, 'S'],
-  ['Montagem 1', 62, 0, 1, 1, 2450, 'S'],
-  ['Montagem 2', 40, 0, 1, 1, 1840, 'S']
+  ['Estamparia', 1, 60, 0.85, 1, '', 4600, 'S'],
+  ['Solda 1', 39, 10, 1, 1, '', 7000, 'S'],
+  ['Solda 2', 46, 10, 0.8, 1, '', 1700, 'S'],
+  ['Montagem 1', 62, 0, 1, 1, '', 2450, 'S'],
+  ['Montagem 2', 40, 0, 1, 1, '', 1840, 'S']
 ];
 
 function onOpen() {
@@ -61,7 +61,7 @@ function criarModelo() {
   proc.getRange(1, 1, 1, CABECALHO_PROCESSOS.length).setValues([CABECALHO_PROCESSOS]);
   proc.getRange(2, 1, PROCESSOS_EXEMPLO.length, CABECALHO_PROCESSOS.length).setValues(PROCESSOS_EXEMPLO);
   proc.getRange('D2:D100').setNumberFormat('0%');
-  proc.getRange('G2:G100').setDataValidation(
+  proc.getRange('H2:H100').setDataValidation(
     SpreadsheetApp.newDataValidation().requireValueInList(['S', 'N']).build());
   proc.getRange(1, 1).setNote('Liste os processos na ordem do fluxo. O estoque de cada linha é o que fica ANTES daquele processo.');
   formatarCabecalho(proc, CABECALHO_PROCESSOS.length);
@@ -115,8 +115,9 @@ function lerProcessos(ss) {
         tr: Number(l[2]) || 0,
         disponibilidade: l[3] === '' ? 1 : Number(l[3]),
         operadores: Number(l[4]) || 0,
-        estoqueAntes: Number(l[5]) || 0,
-        agregaValor: String(l[6]).trim().toUpperCase() !== 'N'
+        turnos: Number(l[5]) || 0,
+        estoqueAntes: Number(l[6]) || 0,
+        agregaValor: String(l[7]).trim().toUpperCase() !== 'N'
       };
     });
 }
@@ -136,7 +137,7 @@ function escreverResultados(ss, r) {
     ['Operadores teóricos (Σ TC ÷ Takt)', r.operadoresTeoricos, 'operadores'],
     ['Operadores necessários (arredondado)', r.operadoresNecessarios, 'operadores'],
     ['Operadores atuais', r.operadoresAtuais, 'operadores'],
-    ['Gargalo (maior TC)', r.gargalo + ' (' + r.gargaloTC + ' s)', '']
+    ['Gargalo (maior carga)', r.gargalo + ' (' + Math.round(r.gargaloCarga * 100) + '% de carga)', '']
   ];
   aba.getRange(1, 1, indicadores.length, 3).setValues(indicadores);
   aba.getRange(2, 2, indicadores.length - 2, 1).setNumberFormat('#,##0.00');
@@ -144,20 +145,22 @@ function escreverResultados(ss, r) {
   formatarCabecalho(aba, 3);
 
   const inicio = indicadores.length + 2;
-  const tabela = [['Processo', 'TC (s)', 'Takt (s)', 'TC efetivo (s)', 'Carga vs. Takt',
-    'Espera antes (dias)', 'Capacidade (peças/dia)', 'Situação']];
+  const tabela = [['Processo', 'TC (s)', 'Takt (s)', 'TC efetivo (s)', 'Turnos',
+    'Espera antes (dias)', 'Capacidade (peças/dia)', 'Carga', 'Situação']];
   r.processos.forEach(function (l) {
-    tabela.push([l.nome, l.tc, r.takt, l.tcEfetivo, l.cargaTakt, l.esperaDias, l.capacidadeDia,
-      l.acimaDoTakt ? 'ACIMA DO TAKT' : 'OK']);
+    tabela.push([l.nome, l.tc, r.takt, l.tcEfetivo, l.turnos, l.esperaDias, l.capacidadeDia, l.carga,
+      l.naoAtende ? 'NÃO ATENDE A DEMANDA' : (l.acimaDoTakt ? 'OK SÓ COM TURNO EXTRA' : 'OK')]);
   });
-  tabela.push(['Produto acabado', '', '', '', '', r.esperaPA, '', '']);
+  tabela.push(['Produto acabado', '', '', '', '', r.esperaPA, '', '', '']);
   aba.getRange(inicio, 1, tabela.length, tabela[0].length).setValues(tabela);
   aba.getRange(inicio, 1, 1, tabela[0].length)
     .setFontWeight('bold').setBackground('#1a73e8').setFontColor('#ffffff');
   aba.getRange(inicio + 1, 2, tabela.length - 1, 6).setNumberFormat('#,##0.00');
-  aba.getRange(inicio + 1, 5, tabela.length - 1, 1).setNumberFormat('0%');
+  aba.getRange(inicio + 1, 5, tabela.length - 1, 1).setNumberFormat('0');
+  aba.getRange(inicio + 1, 8, tabela.length - 1, 1).setNumberFormat('0%');
   r.processos.forEach(function (l, i) {
-    aba.getRange(inicio + 1 + i, 8).setBackground(l.acimaDoTakt ? '#f4cccc' : '#d9ead3');
+    aba.getRange(inicio + 1 + i, 9)
+      .setBackground(l.naoAtende ? '#f4cccc' : (l.acimaDoTakt ? '#fff2cc' : '#d9ead3'));
   });
   aba.autoResizeColumns(1, tabela[0].length);
 
@@ -165,12 +168,14 @@ function escreverResultados(ss, r) {
   const n = r.processos.length;
   const grafico = aba.newChart()
     .asComboChart()
-    .addRange(aba.getRange(inicio, 1, n + 1, 3))
-    .setOption('title', 'Balanceamento: Tempo de ciclo x Takt time')
+    .addRange(aba.getRange(inicio, 1, n + 1, 1))
+    .addRange(aba.getRange(inicio, 4, n + 1, 1))
+    .addRange(aba.getRange(inicio, 3, n + 1, 1))
+    .setOption('title', 'Balanceamento: TC efetivo (TC ÷ OEE) x Takt time')
     .setOption('seriesType', 'bars')
     .setOption('series', { 1: { type: 'line', color: '#d93025' } })
     .setOption('vAxis', { title: 'segundos' })
-    .setPosition(1, 5, 0, 0)
+    .setPosition(1, 11, 0, 0)
     .build();
   aba.insertChart(grafico);
 
@@ -190,8 +195,9 @@ function criarAbaFormulas(ss) {
     ['PCE', 'Tempo VA ÷ Lead time', 'Lead time convertido em segundos de tempo disponível'],
     ['Operadores', 'Σ TC ÷ Takt', 'Arredondar para cima'],
     ['TC efetivo', 'TC ÷ Disponibilidade', 'Mostra o impacto das paradas'],
-    ['Capacidade', 'Tempo disponível × Disponibilidade ÷ TC', 'Peças por dia'],
-    ['Gargalo', 'Processo com maior TC', 'Se TC > Takt, não atende a demanda']
+    ['Capacidade', 'Tempo do turno × Turnos do processo × Disponibilidade ÷ TC', 'Peças por dia'],
+    ['Carga', 'Demanda diária ÷ Capacidade', 'Acima de 100% = não atende a demanda'],
+    ['Gargalo', 'Processo com maior carga', 'Considera OEE e turnos de cada processo']
   ];
   aba.getRange(1, 1, linhas.length, 3).setValues(linhas);
   formatarCabecalho(aba, 3);

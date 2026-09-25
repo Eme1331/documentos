@@ -17,7 +17,8 @@ function normalizarPercentual(valor) {
  * @param {Object} p Parâmetros: demandaMensal, diasUteis, turnos, horasTurno,
  *   pausasMin, estoqueProdutoAcabado.
  * @param {Array<Object>} processos Lista com: nome, tc (s), tr (min),
- *   disponibilidade, operadores, estoqueAntes (peças), agregaValor (bool).
+ *   disponibilidade (ou OEE), operadores, turnos (vazio = turnos da planta),
+ *   estoqueAntes (peças), agregaValor (bool).
  */
 function calcularVSM(p, processos) {
   const obrigatorios = ['demandaMensal', 'diasUteis', 'turnos', 'horasTurno'];
@@ -27,8 +28,9 @@ function calcularVSM(p, processos) {
   if (!processos.length) throw new Error('Cadastre pelo menos um processo.');
 
   const demandaDiaria = p.demandaMensal / p.diasUteis;
-  const tempoDisponivelDia = p.turnos * (p.horasTurno * 3600 - (p.pausasMin || 0) * 60);
-  if (!(tempoDisponivelDia > 0)) throw new Error('Pausas maiores que o turno: tempo disponível ficou zero ou negativo.');
+  const tempoTurno = p.horasTurno * 3600 - (p.pausasMin || 0) * 60;
+  const tempoDisponivelDia = p.turnos * tempoTurno;
+  if (!(tempoTurno > 0)) throw new Error('Pausas maiores que o turno: tempo disponível ficou zero ou negativo.');
   const takt = tempoDisponivelDia / demandaDiaria;
 
   let somaTC = 0;
@@ -43,15 +45,21 @@ function calcularVSM(p, processos) {
     somaTC += proc.tc;
     if (proc.agregaValor) tempoVA += proc.tc;
     operadoresAtuais += proc.operadores || 0;
-    if (!gargalo || proc.tc > gargalo.tc) gargalo = proc;
+    const turnos = proc.turnos > 0 ? proc.turnos : p.turnos;
+    const capacidadeDia = (tempoTurno * turnos * disp) / proc.tc;
+    const carga = demandaDiaria / capacidadeDia;
+    if (!gargalo || carga > gargalo.carga) gargalo = { nome: proc.nome, tc: proc.tc, carga: carga };
     return {
       nome: proc.nome,
       tc: proc.tc,
       tcEfetivo: proc.tc / disp,
       esperaDias: esperaDias,
+      turnos: turnos,
       cargaTakt: proc.tc / takt,
-      capacidadeDia: (tempoDisponivelDia * disp) / proc.tc,
-      acimaDoTakt: proc.tc > takt
+      carga: carga,
+      capacidadeDia: capacidadeDia,
+      acimaDoTakt: proc.tc / disp > takt,
+      naoAtende: carga > 1
     };
   });
 
@@ -74,6 +82,7 @@ function calcularVSM(p, processos) {
     operadoresAtuais: operadoresAtuais,
     gargalo: gargalo.nome,
     gargaloTC: gargalo.tc,
+    gargaloCarga: gargalo.carga,
     processos: linhas
   };
 }
