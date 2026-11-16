@@ -36,6 +36,7 @@ button:hover{background:#f5f7f9}
 .seg button[aria-pressed="true"]:hover{background:var(--ink)}
 button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 button:disabled{opacity:.42;cursor:not-allowed}
+#bBal[aria-pressed="true"]{background:var(--ink);color:var(--accent)}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
 .kpi{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--steel);border-radius:3px;padding:6px 10px}
 .kpi.hot{border-left-color:var(--bad)} .kpi.ok{border-left-color:var(--good)}
@@ -68,6 +69,13 @@ body.apresentar .pal,body.apresentar .side,body.apresentar .soEd{display:none}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .leit{font-size:13.5px;background:#f3f5f8;border-left:4px solid var(--steel);padding:5px 8px;margin:0;border-radius:2px}
 .leit.bad{border-left-color:var(--bad);color:#8f2317}
+.gi{font-size:13px;line-height:1.35;border-left:4px solid var(--line);padding:3px 8px;background:#f3f5f8;border-radius:2px}
+.gi.ok{border-left-color:var(--good)}
+.gi b{display:block;font-weight:600}
+.gi span{color:var(--muted)}
+.guia{display:flex;flex-direction:column;gap:5px}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px}
+.chk input{width:17px;height:17px;accent-color:var(--good)}
 .nota{font-size:12.5px;color:var(--muted);margin:0;line-height:1.4}
 .btns{display:flex;flex-wrap:wrap;gap:6px}
 .btns button{font-size:14.5px;padding:4px 9px;border-width:1.5px}
@@ -80,6 +88,9 @@ canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch
 .toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:min(92%,560px);background:var(--ink);color:#fff;font-size:14px;padding:8px 14px;border-radius:4px;border-left:6px solid var(--accent);box-shadow:0 4px 14px rgba(24,33,45,.25);opacity:0;pointer-events:none;transition:opacity .2s}
 .toast.on{opacity:1}
 .toast.erro{border-left-color:var(--bad)}
+.pop{position:absolute;z-index:3;width:300px;background:#fff;border:2px solid var(--ink);border-top:6px solid var(--accent);border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:7px;box-shadow:0 8px 24px rgba(24,33,45,.3)}
+.pop[hidden]{display:none}
+.pop h2{font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.5px;margin:0}
 .legend{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px;color:var(--muted);margin:0;padding:0;list-style:none}
 .legend li{display:flex;align-items:center;gap:7px}
 .legend svg{flex:none}
@@ -114,10 +125,11 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
       </div>
       <div class="seg" role="group" aria-label="Estado do mapa">
         <button id="bCur" aria-pressed="true">Estado atual</button>
-        <button id="bFut" aria-pressed="false" disabled title="Disponível na próxima fase">Estado futuro</button>
+        <button id="bFut" aria-pressed="false">Estado futuro</button>
       </div>
       <button id="bUndo" class="soEd" title="Desfazer (Ctrl+Z)">Desfazer</button>
       <button id="bRedo" class="soEd" title="Refazer (Ctrl+Y)">Refazer</button>
+      <button id="bBal" aria-pressed="true" title="Mostrar ou ocultar os balões de dados dos postos">Balões</button>
       <button id="bPause">Pausar</button>
       <button id="bOut" aria-label="Diminuir zoom">−</button>
       <button id="bIn" aria-label="Aumentar zoom">+</button>
@@ -129,9 +141,9 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
     <div class="kpi"><span>Demanda</span><b><i id="vDem"></i> <small>pç/dia</small></b></div>
     <div class="kpi"><span>Tempo disponível</span><b><i id="vDisp"></i> <small>min/dia</small></b></div>
     <div class="kpi"><span>Takt time</span><b><i id="vTakt"></i> <small>s</small></b></div>
-    <div class="kpi hot"><span>Lead time</span><b><i id="vLead"></i> <small>dias</small></b></div>
-    <div class="kpi"><span>Tempo de agregação</span><b><i id="vTav"></i> <small>s</small></b></div>
-    <div class="kpi"><span>Eficiência do fluxo</span><b><i id="vEff"></i> <small>%</small></b></div>
+    <div class="kpi hot" id="kLead"><span id="lLead">Lead time</span><b><i id="vLead"></i> <small>dias</small></b></div>
+    <div class="kpi"><span id="lTav">Tempo de agregação</span><b><i id="vTav"></i> <small>s</small></b></div>
+    <div class="kpi"><span id="lEff">Eficiência do fluxo</span><b><i id="vEff"></i> <small>%</small></b></div>
   </section>
 
   <p class="state" id="stateTxt"></p>
@@ -141,6 +153,7 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
     <div class="stage" id="stage">
       <canvas id="cv" role="img" aria-label="Mapa de fluxo de valor isométrico animado: fornecedor, controle da produção e cliente, postos de trabalho com estoques entre eles e a linha do tempo na frente."></canvas>
       <div class="hint" id="hint"></div>
+      <div class="pop" id="pop" hidden role="dialog" aria-label="Dados do posto"></div>
       <div class="toast" id="toast" role="status" aria-live="polite"></div>
     </div>
     <aside class="side" id="side" aria-label="Dados da peça selecionada"></aside>
@@ -152,6 +165,7 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
     <li><svg width="30" height="12"><path d="M0 3h5v6H0zM10 3h5v6h-5z" fill="#18212d"/><path d="M5 3h5v6H5zM15 3h5v6h-5z" fill="#fff" stroke="#18212d" stroke-width=".5"/><path d="M20 0l9 6-9 6z" fill="#18212d"/></svg>Fluxo empurrado</li>
     <li><svg width="30" height="12"><path d="M0 6h9l3-5 4 10 3-5h10" fill="none" stroke="#1f6fd6" stroke-width="2"/></svg>Informação eletrônica</li>
     <li><svg width="30" height="12"><path d="M0 6h29" fill="none" stroke="#1f6fd6" stroke-width="2"/></svg>Informação manual</li>
+    <li><svg width="30" height="12"><path d="M0 6h30" stroke="#178a5a" stroke-width="2" stroke-dasharray="4 3"/><path d="M0 6l7-4v8z" fill="#178a5a"/></svg>Kanban, puxado com supermercado</li>
     <li><svg width="30" height="14"><path d="M0 2h10v10H0z" fill="#d9685c"/><path d="M10 9h10v3H10z" fill="#2f9e6e"/><path d="M20 4h10v8H20z" fill="#d9685c"/></svg>Linha do tempo: espera no degrau alto, agregação no baixo</li>
   </ul>
 </div>
@@ -174,7 +188,7 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
 /* =========================================================================
    1. MODELO  -  todo o mapa vive em um único objeto JSON (variável M)
    ========================================================================= */
-var CHAVE="fluxocerto.mf.mapa.v1", VERSAO=1;
+var CHAVE="fluxocerto.mf.mapa.v1", VERSAO=2;
 var INK="#18212d", CRU="#66768a", AZUL="#1f6fd6";
 
 /* catálogo de estações: cor, altura de apoio da peça, cor da peça na saída */
@@ -196,8 +210,9 @@ var TIPOS={
   cliente:   {rotulo:"Cliente",               pe:[-3,-3,3,3],         alt:5.8, cor:"#55606e"},
   pcp:       {rotulo:"Controle da produção",  pe:[-4.3,-3.3,4.3,3.3], alt:5.4, cor:"#2c4a6e"}
 };
-/* tipos de fluxo de material: só o empurrado está ativo na fase 1 */
-var FLUXOS={empurrado:{rotulo:"Empurrado",ativo:true},supermercado:{rotulo:"Puxado com supermercado (fase 2)",ativo:false},fifo:{rotulo:"FIFO (fase 2)",ativo:false}};
+/* tipos de fluxo de material entre processos */
+var FLUXOS={empurrado:{rotulo:"Empurrado"},supermercado:{rotulo:"Puxado com supermercado (kanban)"},fifo:{rotulo:"FIFO (primeiro a entrar, primeiro a sair)"},continuo:{rotulo:"Fluxo contínuo (sem estoque)"}};
+var VERDE="#178a5a";
 var TIPOS_INFO={eletronica:"Eletrônica",manual:"Manual"};
 
 function num(v,def,min,max){
@@ -211,7 +226,7 @@ function dadosProcesso(d,modelo){
   d=d||{};
   var r=d.refugo;
   return {nome:txt(d.nome,CAT[modelo].nome),tc:num(d.tc,60,0),tr:num(d.tr,0,0),disp:num(d.disp,100,0,100),
-    op:Math.round(num(d.op,1,0,99)),tempoDisp:num(d.tempoDisp,27600,0),lote:txt(d.lote,""),
+    op:Math.round(num(d.op,1,0,99)),tempoDisp:num(d.tempoDisp,27600,0),lote:txt(d.lote,""),kaizen:txt(d.kaizen,""),
     refugo:(r==null||r==="")?null:num(r,0,0,100)};
 }
 function mapaVazio(){
@@ -219,14 +234,14 @@ function mapaVazio(){
     mapa:{nome:"Novo mapa",familia:"",clienteFinal:"",data:hoje()},
     cliente:{demandaDia:0,turnos:1,tempoDisponivelMin:480,freqExpedicao:"diária"},
     fornecedor:{material:"",freqEntrega:"semanal"},
-    nos:[],ligacoes:[],fluxosInfo:[]};
+    nos:[],ligacoes:[],fluxosInfo:[],futuro:null};
 }
 function mapaExemplo(){
   var P=function(id,modelo,x,tc,tr,disp,op){return {id:id,tipo:"processo",modelo:modelo,pos:{x:x,y:22},
     dados:dadosProcesso({tc:tc,tr:tr,disp:disp,op:op,tempoDisp:27600,lote:"1 semana"},modelo)};};
   var L=function(id,a,b,q){return {id:id,origem:a,destino:b,fluxo:"empurrado",estoquePecas:q};};
   var I=function(id,a,b,r,f,t){return {id:id,origem:a,destino:b,rotulo:r,frequencia:f,tipo:t};};
-  return {versao:VERSAO,exemplo:true,
+  var ex={versao:VERSAO,exemplo:true,
     mapa:{nome:"Suporte metálico SM-200",familia:"Suportes metálicos",clienteFinal:"Linha metalmecânica fictícia, dados de demonstração",data:hoje()},
     cliente:{demandaDia:460,turnos:1,tempoDisponivelMin:460,freqExpedicao:"entrega diária"},
     fornecedor:{material:"Chapa de aço",freqEntrega:"2× por semana"},
@@ -242,7 +257,25 @@ function mapaExemplo(){
       I("i2","n2","n1","Pedido","semanal","eletronica"),
       I("i3","n2","n4","Programação","semanal","manual"),I("i4","n2","n5","Programação","semanal","manual"),
       I("i5","n2","n6","Programação","semanal","manual"),I("i6","n2","n7","Programação","semanal","manual"),
-      I("i7","n2","n8","Programação","semanal","manual")]};
+      I("i7","n2","n8","Programação","semanal","manual")],futuro:null};
+  /* estado futuro de demonstração: supermercados com kanban, montagem como puxador e dois kaizens */
+  var F=estadoFuturoDe(ex),dias=[2,.5,.5,.5,.5,1];
+  F.ligacoes.forEach(function(l,k){l.fluxo="supermercado";l.estoquePecas=dias[k]*460;});
+  F.nos.forEach(function(n){
+    if(n.id==="n5"){n.dados.tr=10;n.dados.kaizen="Troca rápida: 25 para 10 min";}
+    if(n.id==="n6"){n.dados.tc=56;n.dados.disp=92;n.dados.kaizen="T/C de 72 para 56 s";}
+    if(n.id==="n8")n.puxador=true;
+    if(n.tipo==="processo")n.dados.lote="1 dia";
+  });
+  F.fluxosInfo=F.fluxosInfo.filter(function(f){return !/^i[3-6]$/.test(f.id);});
+  F.fluxosInfo[F.fluxosInfo.length-1].frequencia="diária";
+  F.plano={pecasEmbalagem:20,nivelamento:true};
+  ex.futuro=F; return ex;
+}
+/* o estado futuro nasce como cópia do atual */
+function estadoFuturoDe(D){
+  var c=JSON.parse(JSON.stringify({nos:D.nos,ligacoes:D.ligacoes,fluxosInfo:D.fluxosInfo}));
+  c.plano={pecasEmbalagem:null,nivelamento:false}; return c;
 }
 
 function noPorId(M,id){for(var i=0;i<M.nos.length;i++)if(M.nos[i].id===id)return M.nos[i];return null;}
@@ -337,32 +370,47 @@ function criarNo(M,tipo,modelo,x,y){
 /* valida e saneia um objeto vindo do armazenamento ou da área de transferência */
 function normalizar(o){
   if(!o||typeof o!=="object"||!Array.isArray(o.nos))throw new Error("O texto não é um mapa do MF: falta a lista de nós.");
-  var M=mapaVazio(),m=o.mapa||{},c=o.cliente||{},f=o.fornecedor||{},vistos={},unico={};
+  var M=mapaVazio(),m=o.mapa||{},c=o.cliente||{},f=o.fornecedor||{};
   M.exemplo=!!o.exemplo;
   M.mapa={nome:txt(m.nome,"Mapa sem nome"),familia:txt(m.familia,""),clienteFinal:txt(m.clienteFinal,""),data:txt(m.data,hoje())};
   M.cliente={demandaDia:num(c.demandaDia,0,0),turnos:num(c.turnos,1,0),tempoDisponivelMin:num(c.tempoDisponivelMin,480,0),freqExpedicao:txt(c.freqExpedicao,"")};
   M.fornecedor={material:txt(f.material,""),freqEntrega:txt(f.freqEntrega,"")};
+  normEstado(M,o);
+  if(o.futuro&&typeof o.futuro==="object"&&Array.isArray(o.futuro.nos)){
+    var F={nos:[],ligacoes:[],fluxosInfo:[]},pl=o.futuro.plano||{},pe=pl.pecasEmbalagem;
+    normEstado(F,o.futuro);
+    F.plano={pecasEmbalagem:(pe==null||pe==="")?null:num(pe,0,0),nivelamento:!!pl.nivelamento};
+    M.futuro=F;
+  }
+  return M;
+}
+/* mantém o id original quando é válido e ainda não foi usado */
+function idOu(M,id,pfx){
+  id=String(id||"");
+  return new RegExp("^"+pfx+"\\d+$").test(id)&&!ligPorId(M,id)&&!infoPorId(M,id)?id:novoId(M,pfx);
+}
+function normEstado(M,o){
+  var vistos={},unico={},pux=false;
   o.nos.forEach(function(n){
     if(!n||typeof n!=="object"||!TIPOS[n.tipo])return;
     var id=String(n.id||""); if(!/^n\d+$/.test(id)||vistos[id])return;
     if(n.tipo!=="processo"){if(unico[n.tipo])return;unico[n.tipo]=1;}
     vistos[id]=1;
     var p=n.pos||{},no={id:id,tipo:n.tipo,pos:{x:Math.round(num(p.x,0)),y:Math.round(num(p.y,0))}},d=n.dados||{};
-    if(n.tipo==="processo"){no.modelo=CAT[n.modelo]?n.modelo:"generico";no.dados=dadosProcesso(d,no.modelo);}
+    if(n.tipo==="processo"){no.modelo=CAT[n.modelo]?n.modelo:"generico";no.dados=dadosProcesso(d,no.modelo); if(n.puxador&&!pux){no.puxador=true;pux=true;}}
     if(n.tipo==="pcp")no.dados={nome:txt(d.nome,"PCP"),descricao:txt(d.descricao,"Controle da produção")};
     M.nos.push(no);
   });
   (Array.isArray(o.ligacoes)?o.ligacoes:[]).forEach(function(l){
     if(!l||erroLigacao(M,String(l.origem),String(l.destino)))return;
-    M.ligacoes.push({id:novoId(M,"l"),origem:String(l.origem),destino:String(l.destino),
+    M.ligacoes.push({id:idOu(M,l.id,"l"),origem:String(l.origem),destino:String(l.destino),
       fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0))});
   });
   (Array.isArray(o.fluxosInfo)?o.fluxosInfo:[]).forEach(function(i){
     if(!i)return; var a=String(i.origem),b=String(i.destino);
     if(a===b||!noPorId(M,a)||!noPorId(M,b))return;
-    M.fluxosInfo.push({id:novoId(M,"i"),origem:a,destino:b,rotulo:txt(i.rotulo,""),frequencia:txt(i.frequencia,""),tipo:TIPOS_INFO[i.tipo]?i.tipo:"manual"});
+    M.fluxosInfo.push({id:idOu(M,i.id,"i"),origem:a,destino:b,rotulo:txt(i.rotulo,""),frequencia:txt(i.frequencia,""),tipo:TIPOS_INFO[i.tipo]?i.tipo:"manual"});
   });
-  return M;
 }
 
 /* =========================================================================
@@ -420,7 +468,8 @@ function calcular(M){
   M.nos.forEach(function(n){ if(!C.corIn[n.id]){C.corIn[n.id]=CRU;C.corOut[n.id]=(n.tipo==="processo"&&CAT[n.modelo].saida)||CRU;} });
 
   /* gargalos: T/C acima do takt */
-  C.gargalo={};C.gargalos=[];
+  C.gargalo={};C.gargalos=[];C.puxador=null;
+  M.nos.forEach(function(n){ if(n.puxador&&!C.puxador)C.puxador=n; });
   M.nos.forEach(function(n){ if(n.tipo==="processo"&&C.takt>0&&n.dados.tc>C.takt+1e-9){C.gargalo[n.id]=true;C.gargalos.push(n);} });
 
   /* geometria das ligações: o estoque pertence à ligação */
@@ -430,29 +479,32 @@ function calcular(M){
   C.lig={};
   M.ligacoes.forEach(function(l){
     var A=by[l.origem],B=by[l.destino],g={id:l.id,cor:corLig[l.id]||CRU,seta:null,rota:null},u,Q,v,d;
-    g.dias=dem>0?l.estoquePecas/dem:0;                                /* dias = peças / demanda diária */
-    g.nCx=l.estoquePecas>0?Math.max(1,Math.min(20,Math.round((dem>0?g.dias:1)*2))):0;
-    g.topo=.2+Math.ceil(g.nCx/4)*.95;
+    g.tipo=l.fluxo; g.pecas=l.fluxo==="continuo"?0:l.estoquePecas;    /* fluxo contínuo não tem estoque */
+    g.dias=dem>0?g.pecas/dem:0;                                       /* dias = peças / demanda diária */
+    g.nCx=g.pecas>0?Math.max(1,Math.min(g.tipo==="fifo"?3:20,Math.round((dem>0?g.dias:1)*2))):0;
+    g.topo=g.tipo==="continuo"?.9:g.tipo==="fifo"?(g.nCx?1.05:.15):.2+Math.ceil(g.nCx/4)*.95;
     if(A.tipo==="fornecedor"){
       v=sai[B.id];Q=v&&by[v.destino];
       u=Q&&Q.tipo==="processo"?unit(B.pos.x-Q.pos.x,B.pos.y-Q.pos.y):[-1,0];
-      g.k={x:B.pos.x+u[0]*6,y:B.pos.y+u[1]*6}; g.n=normalFrente(u);
+      g.k={x:B.pos.x+u[0]*6,y:B.pos.y+u[1]*6}; g.n=normalFrente(u); g.d=[-u[0],-u[1]];
       g.rota=rotaCaminhao(A.pos,g.k); g.corCam="#2f6fb5"; g.fase=0; g.periodo=16;
     } else if(B.tipo==="cliente"){
       v=ent[A.id];Q=v&&by[v.origem];
       u=Q&&Q.tipo==="processo"?unit(A.pos.x-Q.pos.x,A.pos.y-Q.pos.y):[1,0];
-      g.k={x:A.pos.x+u[0]*6,y:A.pos.y+u[1]*6}; g.n=normalFrente(u);
+      g.k={x:A.pos.x+u[0]*6,y:A.pos.y+u[1]*6}; g.n=normalFrente(u); g.d=u;
       g.rota=rotaCaminhao(B.pos,g.k).slice().reverse(); g.corCam="#d9542b"; g.fase=.45; g.periodo=14;
     } else {
-      d=unit(B.pos.x-A.pos.x,B.pos.y-A.pos.y); g.n=normalFrente(d);
+      d=unit(B.pos.x-A.pos.x,B.pos.y-A.pos.y); g.n=normalFrente(d); g.d=d;
       g.k={x:(A.pos.x+B.pos.x)/2,y:(A.pos.y+B.pos.y)/2};
       var ta=ateBorda(TIPOS[A.tipo].pe,d)+.4,tb=ateBorda(TIPOS[B.tipo].pe,[-d[0],-d[1]])+.4,
           dist=Math.hypot(B.pos.x-A.pos.x,B.pos.y-A.pos.y);
       if(dist-ta-tb>1.6)g.seta={a:[A.pos.x+d[0]*ta+g.n[0]*4.6,A.pos.y+d[1]*ta+g.n[1]*4.6],
         b:[B.pos.x-d[0]*tb+g.n[0]*4.6,B.pos.y-d[1]*tb+g.n[1]*4.6],d:d,n:g.n};
+      /* kanban de retirada: volta do processo cliente para o supermercado */
+      if(g.seta&&g.tipo==="supermercado")g.kanban=[[g.seta.b[0]+g.n[0]*1.4-d[0],g.seta.b[1]+g.n[1]*1.4-d[1]],[g.seta.a[0]+g.n[0]*1.4+d[0],g.seta.a[1]+g.n[1]*1.4+d[1]]];
     }
     inc(g.k.x-1.3,g.k.y-1.3);inc(g.k.x+1.3,g.k.y+1.3);
-    if(g.seta){inc(g.seta.a[0],g.seta.a[1]+1);inc(g.seta.b[0],g.seta.b[1]+1);}
+    if(g.seta){inc(g.seta.a[0],g.seta.a[1]+(g.kanban?2.2:1));inc(g.seta.b[0],g.seta.b[1]+(g.kanban?2.2:1));}
     C.lig[l.id]=g;
   });
   if(bb[0]>bb[2])bb=[0,0,44,24];
@@ -624,8 +676,15 @@ function setaEmpurrada(s,t){
   fpoly([[s.a[0]+d[0]*h+n[0]*.8,s.a[1]+d[1]*h+n[1]*.8],[s.b[0],s.b[1]],[s.a[0]+d[0]*h-n[0]*.8,s.a[1]+d[1]*h-n[1]*.8]],INK);
 }
 
+function setaSolida(s,cor,hw){
+  var d=s.d,n=s.n,a=s.a,h=Math.hypot(s.b[0]-a[0],s.b[1]-a[1])-1.2;
+  function q(u,v){return [a[0]+d[0]*u+n[0]*v,a[1]+d[1]*u+n[1]*v];}
+  fpoly([q(0,hw),q(h,hw),q(h,.8),[s.b[0],s.b[1]],q(h,-.8),q(h,-hw),q(0,-hw)],cor);
+}
+
 /* estado de interface lido pela renderização (preenchido pelo editor) */
-var ui={edit:true,sel:null,hover:null};
+var ui={edit:true,sel:null,hover:null,baloes:true,rets:{}};
+var VERMELHO="#d23b2a";
 
 /* ---- construção da cena em caixas ---- */
 function construir(M,C,t){
@@ -731,10 +790,10 @@ function construir(M,C,t){
     if(no.tipo==="pcp"){predioPcp(no);
       bl.push({k:"card",x:p.x,y:p.y,z:6.6,t:no.dados.nome.toUpperCase(),c:"#2c4a6e",one:no.dados.descricao||"Controle da produção"});return;}
 
-    var cat=CAT[no.modelo],c=cat.cor,d=no.dados,T=Math.max(d.tc,4)/14,ph=(t/T+idx*.37)%1;
+    var cat=CAT[no.modelo],gar=!!C.gargalo[no.id],c=gar?VERMELHO:cat.cor,d=no.dados,T=Math.max(d.tc,4)/14,ph=(t/T+idx*.37)%1;
     var act=ph>.22&&ph<.78,a=act?(ph-.22)/.56:0,tz=cat.tz;
     function R(dx,dy,z,w,dd,h,col){B(p.x+dx,p.y+dy,z,w,dd,h,col);}
-    R(-3.2,-3.7,0,6.6,7,.3,mixHex(c,"#ffffff",.72));
+    R(-3.2,-3.7,0,6.6,7,.3,mixHex(c,"#ffffff",gar?.5:.72));
     /* peça: sai do estoque de entrada, é processada e segue para o estoque de saída */
     var le=C.ent[no.id]&&C.lig[C.ent[no.id].id],ls=C.sai[no.id]&&C.lig[C.sai[no.id].id],ci=C.corIn[no.id],co=C.corOut[no.id],u,s,g=null,x,y,z;
     var pc=ph<=.22?ci:ph>=.78?co:(ci===co?ci:mixHex(ci,co,Math.round(a*12)/12));
@@ -746,24 +805,46 @@ function construir(M,C,t){
     var nOp=Math.max(0,Math.min(4,d.op)),vg=nOp===1?VAGAS1:VAGAS;
     for(var q=0;q<nOp;q++)operador(p.x+cat.wx,p.y+vg[q][1],.3,c,cat.acena&&act,q*1.5);
 
-    var gar=!!C.gargalo[no.id],grid=[["T/C",n1(d.tc)+" s",gar],["T/R",n1(d.tr)+" min"],["Disp",n1(d.disp)+"%"],["Op",String(d.op)],
+    var grid=[["T/C",n1(d.tc)+" s",gar],["T/R",n1(d.tr)+" min"],["Disp",n1(d.disp)+"%"],["Op",String(d.op)],
       ["T. disp",mil(d.tempoDisp)+" s"],["TPT",d.lote||"—"]];
     if(d.refugo!=null&&d.refugo>0)grid.push(["Refugo",n1(d.refugo)+"%"]);
-    bl.push({k:"card",x:p.x,y:p.y-2.8,z:5.7,t:d.nome.toUpperCase(),c:c,grid:grid});
-    if(gar)bl.push({k:"burst",x:p.x,y:p.y-2.8,z:5.7,nr:Math.ceil(grid.length/2),txt:"T/C "+n1(d.tc)+" s > takt "+n1(C.takt)+" s"});
+    /* base: altura do balão em unidades de tela; zero quando os balões estão ocultos */
+    var base=ui.baloes?2+Math.ceil(grid.length/2)*1.3:0;
+    if(ui.baloes)bl.push({k:"card",no:no.id,x:p.x,y:p.y-2.8,z:5.7,t:d.nome.toUpperCase(),c:c,grid:grid});
+    if(no.puxador)bl.push({k:"pill",x:p.x,y:p.y-2.8,z:5.7,up:base+1.1,txt:"PROCESSO PUXADOR",c:VERDE,fill:1});
+    if(gar)bl.push({k:"burst",x:p.x,y:p.y-2.8,z:5.7,base:base+(no.puxador?1.7:0),txt:"T/C "+n1(d.tc)+" s > takt "+n1(C.takt)+" s"});
+    if(d.kaizen)bl.push({k:"kaizen",x:p.x,y:p.y-2.8,z:5.7,base:base,txt:d.kaizen});
   });
 
   /* estoques e caminhões, um por ligação */
-  var somaSeta=[0,0,0];
+  var somaSeta={empurrado:[0,0,0],supermercado:[0,0,0]},q;
   M.ligacoes.forEach(function(l){
-    var g=C.lig[l.id],k=g.k;
-    B(k.x-1.2,k.y-1.2,0,2.4,2.4,.2,"#b98a55");
-    for(var q=0;q<g.nCx;q++)B(k.x-1.06+(q%2)*1.08,k.y-1.06+((q>>1)%2)*1.08,.2+(q>>2)*.95,1,1,.9,g.cor);
-    bl.push({k:"tri",x:k.x,y:k.y,z:g.topo+1,q:l.estoquePecas,d:g.dias,sem:M.cliente.demandaDia<=0});
+    var g=C.lig[l.id],k=g.k,sem=M.cliente.demandaDia<=0;
+    if(g.tipo==="continuo"){ /* mesa de passagem, sem estoque */
+      B(k.x-.6,k.y-.6,0,1.2,1.2,.9,"#55606e");
+    } else if(g.tipo==="fifo"){ /* pista FIFO na direção do fluxo */
+      var ax=Math.abs(g.d[0])>=Math.abs(g.d[1]);
+      if(ax)B(k.x-1.7,k.y-.6,0,3.4,1.2,.15,"#3b4654"); else B(k.x-.6,k.y-1.7,0,1.2,3.4,.15,"#3b4654");
+      for(q=0;q<g.nCx;q++){var o=(q-(g.nCx-1)/2)*1.08; B(k.x-.5+(ax?o:0),k.y-.5+(ax?0:o),.15,1,1,.9,g.cor);}
+      bl.push({k:"fifo",x:k.x,y:k.y,z:g.topo+1,q:g.pecas,d:g.dias,sem:sem});
+    } else {
+      var sup=g.tipo==="supermercado";
+      B(k.x-1.2,k.y-1.2,0,2.4,2.4,.2,sup?VERDE:"#b98a55");
+      if(sup){B(k.x-1.2,k.y-1.36,0,.16,.16,g.topo+.5,VERDE);B(k.x+1.04,k.y-1.36,0,.16,.16,g.topo+.5,VERDE);B(k.x-1.2,k.y-1.36,g.topo+.5,2.4,.16,.16,VERDE);}
+      for(q=0;q<g.nCx;q++)B(k.x-1.06+(q%2)*1.08,k.y-1.06+((q>>1)%2)*1.08,.2+(q>>2)*.95,1,1,.9,g.cor);
+      bl.push({k:sup?"sup":"tri",x:k.x,y:k.y,z:g.topo+(sup?1.7:1),q:g.pecas,d:g.dias,sem:sem});
+    }
     if(g.rota)caminhao(g.rota,viagem((t/g.periodo+g.fase)%1),g.corCam);
-    if(g.seta){somaSeta[0]+=(g.seta.a[0]+g.seta.b[0])/2;somaSeta[1]+=(g.seta.a[1]+g.seta.b[1])/2;somaSeta[2]++;}
+    var ss=g.seta&&somaSeta[g.tipo];
+    if(ss){ss[0]+=(g.seta.a[0]+g.seta.b[0])/2;ss[1]+=(g.seta.a[1]+g.seta.b[1])/2;ss[2]++;}
   });
-  if(somaSeta[2])bl.push({k:"pill",x:somaSeta[0]/somaSeta[2],y:somaSeta[1]/somaSeta[2]+2,z:.2,txt:"Fluxo empurrado",c:INK});
+  q=somaSeta.empurrado; if(q[2])bl.push({k:"pill",x:q[0]/q[2],y:q[1]/q[2]+2,z:.2,txt:"Fluxo empurrado",c:INK});
+  q=somaSeta.supermercado; if(q[2])bl.push({k:"pill",x:q[0]/q[2],y:q[1]/q[2]+3.4,z:.2,txt:"Puxado por kanban",c:VERDE});
+  /* caixa de nivelamento (heijunka) na programação do puxador */
+  if(M.plano&&M.plano.nivelamento&&C.puxador){
+    M.fluxosInfo.some(function(f){var gi=C.info[f.id]; if(f.destino!==C.puxador.id||!gi.pts||C.by[f.origem].tipo!=="pcp")return false;
+      var a=gi.pts[0],b=gi.pts[gi.pts.length-1];bl.push({k:"pill",x:lerp(a[0],b[0],.82),y:lerp(a[1],b[1],.82),z:.4,txt:"OXOX",c:INK,fill:1});return true;});
+  }
 
   /* linha do tempo em degraus */
   var tl=C.tl;
@@ -819,7 +900,10 @@ function desenharChao(M,C,t){
   /* informação */
   M.fluxosInfo.forEach(function(f,k){var g=C.info[f.id]; if(g.pts)floorPath(g.pts,AZUL,1,false,t+k*.3,f.tipo==="eletronica"?.2:.3,true);});
   /* setas de fluxo de material */
-  M.ligacoes.forEach(function(l){var g=C.lig[l.id]; if(g.seta)setaEmpurrada(g.seta,t);});
+  M.ligacoes.forEach(function(l,k){var g=C.lig[l.id]; if(!g.seta)return;
+    if(g.tipo==="empurrado")setaEmpurrada(g.seta,t);
+    else if(g.tipo==="supermercado"){setaSolida(g.seta,VERDE,.4);floorPath(g.kanban,VERDE,1,true,t+k*.25,.28,true);}
+    else setaSolida(g.seta,INK,.22);});
 }
 
 /* ---- efeitos e rótulos ---- */
@@ -831,6 +915,7 @@ function desenharFx(fx){
   ctx.globalAlpha=1;
 }
 function desenharRotulos(bl,t){
+  ui.rets={};
   bl.forEach(function(b){var p=P(b.x,b.y,b.z);b.sx=p[0];b.sy=p[1];});
   bl.sort(function(a,b){return a.sy-b.sy;});
   ctx.textBaseline="middle";
@@ -840,6 +925,7 @@ function desenharRotulos(bl,t){
       ctx.font=fontB(.84*u,600);
       var w=b.grid?10.6*u:b.one?Math.max(8.8*u,ctx.measureText(b.one).width+1.4*u):8.8*u,th=1.55*u,rh=1.3*u,
           nr=b.grid?Math.ceil(b.grid.length/2):b.one?1:b.rows.length,h=th+nr*rh+.45*u,x0=x-w/2,y0=y-h;
+      if(b.no)ui.rets[b.no]=[x0,y0,w,h];
       ctx.strokeStyle="rgba(24,33,45,.4)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+1.5*u);ctx.stroke();
       ctx.fillStyle="rgba(24,33,45,.18)";rr(x0+.25*u,y0+.3*u,w,h,2);ctx.fill();
       ctx.fillStyle="#fff";rr(x0,y0,w,h,2);ctx.fill();
@@ -866,16 +952,38 @@ function desenharRotulos(bl,t){
       if(b.sub){ctx.font=fontB(.7*u,600);halo(b.sub,x,y+1.15*u,"#5b6878");}
     } else if(b.k==="pill"){
       ctx.font=fontD(.98*u,600);ctx.textAlign="center";
-      var tw=ctx.measureText(b.txt).width+1.1*u,ph=1.5*u;
-      ctx.fillStyle="rgba(255,255,255,.94)";rr(x-tw/2,y-ph/2,tw,ph,ph/2);ctx.fill();
+      var tw=ctx.measureText(b.txt).width+1.1*u,ph=1.5*u,py=b.up?y-b.up*u:y;
+      ctx.fillStyle=b.fill?b.c:"rgba(255,255,255,.94)";rr(x-tw/2,py-ph/2,tw,ph,ph/2);ctx.fill();
       ctx.strokeStyle=b.c;ctx.lineWidth=1.3;ctx.stroke();
-      ctx.fillStyle=b.c;ctx.fillText(b.txt,x,y+.04*u);
+      ctx.fillStyle=b.fill?"#fff":b.c;ctx.fillText(b.txt,x,py+.04*u);
+    } else if(b.k==="sup"){ /* símbolo de supermercado: prateleiras abertas para o lado do cliente */
+      var e=1.05*u,j;
+      ctx.fillStyle="#fff";ctx.fillRect(x-e,y-2.1*e,2*e,2.1*e);
+      ctx.strokeStyle=VERDE;ctx.lineWidth=Math.max(2,.24*u);ctx.lineCap="butt";ctx.beginPath();
+      for(j=0;j<4;j++){ctx.moveTo(x-e,y-j*.7*e);ctx.lineTo(x+e,y-j*.7*e);}
+      ctx.moveTo(x+e,y);ctx.lineTo(x+e,y-2.1*e);ctx.stroke();
+      ctx.textAlign="center";ctx.font=fontD(1.15*u,700);halo(b.sem?"— d":nf(b.d,1)+" d",x,y-2.1*e-1.55*u,VERDE);
+      ctx.font=fontB(.82*u,600);halo(mil(b.q)+" pç",x,y-2.1*e-.55*u,"#5b6878");
+    } else if(b.k==="fifo"){
+      var fw=4.4*u,fh=1.4*u;
+      ctx.fillStyle="#fff";ctx.fillRect(x-fw/2,y-fh,fw,fh);ctx.strokeStyle=INK;ctx.lineWidth=1.4;
+      ctx.beginPath();ctx.moveTo(x-fw/2,y-fh);ctx.lineTo(x+fw/2,y-fh);ctx.moveTo(x-fw/2,y);ctx.lineTo(x+fw/2,y);ctx.stroke();
+      ctx.textAlign="center";ctx.font=fontD(1.05*u,700);ctx.fillStyle=INK;ctx.fillText("FIFO →",x,y-fh/2+.04*u);
+      ctx.font=fontD(1.15*u,700);halo(b.sem?"— d":nf(b.d,1)+" d",x,y-fh-1.55*u,INK);
+      ctx.font=fontB(.82*u,600);halo("máx. "+mil(b.q)+" pç",x,y-fh-.55*u,"#5b6878");
+    } else if(b.k==="kaizen"){ /* raio kaizen: melhoria necessária para chegar ao estado futuro */
+      ctx.font=fontB(.74*u,600);
+      var kw=Math.min(9*u,Math.max(4.6*u,ctx.measureText(b.txt).width*.62+2*u)),kx=x-5.3*u-kw*.72,ky=y-(b.base/2+.4)*u,kp=[],kk;
+      for(kk=0;kk<22;kk++){var ka=kk/22*Math.PI*2,kr=kk%2?.8:1;kp.push([kx+Math.cos(ka)*kw*kr,ky+Math.sin(ka)*2*u*kr]);}
+      poly(kp,"#fff4c2",INK,1.6);
+      ctx.textAlign="center";ctx.font=fontD(.95*u,700);ctx.fillStyle="#d23b2a";ctx.fillText("KAIZEN",kx,ky-.5*u);
+      ctx.font=fontB(.74*u,600);ctx.fillStyle=INK;ctx.fillText(b.txt,kx,ky+.5*u,kw*1.5);
     } else if(b.k==="burst"){
-      var cx=x,cy=y-(2+b.nr*1.3)*u-3.1*u,R=3.3*u*(1+.05*Math.sin(t*5)),pts=[];
+      var cx=x,cy=y-b.base*u-3.1*u,R=3.3*u*(1+.05*Math.sin(t*5)),pts=[];
       for(var k=0;k<24;k++){var an=k/24*Math.PI*2,rad=k%2?R*.76:R;pts.push([cx+Math.cos(an)*rad*1.5,cy+Math.sin(an)*rad*.8]);}
-      poly(pts,"#ffd23f","#d23b2a",2);
-      ctx.textAlign="center";ctx.font=fontD(1.2*u,700);ctx.fillStyle="#d23b2a";ctx.fillText("GARGALO",cx,cy-.55*u);
-      ctx.font=fontB(.78*u,600);ctx.fillStyle=INK;ctx.fillText(b.txt,cx,cy+.6*u,R*2.3);
+      poly(pts,VERMELHO,"#7d1c12",2);
+      ctx.textAlign="center";ctx.font=fontD(1.2*u,700);ctx.fillStyle="#fff";ctx.fillText("GARGALO",cx,cy-.55*u);
+      ctx.font=fontB(.78*u,600);ctx.fillStyle="#ffe3de";ctx.fillText(b.txt,cx,cy+.6*u,R*2.3);
     }
   }
 }
@@ -883,16 +991,37 @@ function desenharRotulos(bl,t){
 /* =========================================================================
    4. EDITOR  -  estado, histórico, persistência, paleta, painel e ponteiro
    ========================================================================= */
-var M,rev=0,cache=null,modo="editar",sel=null,t=3,paused=false,last=0;
+/* D é o documento inteiro; M é a vista do estado em edição (atual ou futuro) */
+var D,M,vendo="atual",cacheAtual=null,rev=0,cache=null,modo="editar",sel=null,t=3,paused=false,last=0;
 var pilhaU=[],pilhaR=[],ultChave=null,arr=null,armado=null,fantasma=null,rato={x:0,y:0,dentro:false},leitura=null,salvarTmr=0,avisouSalvar=false;
 var $=function(id){return document.getElementById(id);};
 var side=$("side"),palEl=$("pal"),toastEl=$("toast"),toastTmr=0;
 
 function calc(){ if(!cache||cache.rev!==rev){cache=calcular(M);cache.rev=rev;} return cache; }
+function calcAtual(){ if(vendo==="atual")return calc(); if(!cacheAtual||cacheAtual.rev!==rev){cacheAtual=calcular(D);cacheAtual.rev=rev;} return cacheAtual; }
+function atualizarVista(){
+  if(vendo==="futuro"&&!D.futuro)vendo="atual";
+  cache=null;cacheAtual=null;
+  if(vendo==="atual"){M=D;}
+  else {
+    var F=D.futuro; M={mapa:D.mapa,cliente:D.cliente,fornecedor:D.fornecedor,plano:F.plano};
+    ["nos","ligacoes","fluxosInfo"].forEach(function(k){Object.defineProperty(M,k,{get:function(){return F[k];},set:function(v){F[k]=v;},enumerable:true});});
+  }
+  $("bCur").setAttribute("aria-pressed",String(vendo==="atual"));$("bFut").setAttribute("aria-pressed",String(vendo==="futuro"));
+}
+function setEstado(v){
+  if(v===vendo)return;
+  if(v==="futuro"&&!D.futuro){
+    if(modo!=="editar"){avisar("Este mapa ainda não tem estado futuro. Crie-o no modo Editar.",true);return;}
+    acao(function(){D.futuro=estadoFuturoDe(D);});
+    avisar("Estado futuro criado como cópia do atual. Siga as questões do painel ao lado.");
+  }
+  fecharPop();vendo=v;sel=null;arr=null;atualizarVista();rev++;montarPainel();atualizarUI();
+}
 
 /* ---- persistência ---- */
 function salvar(){
-  try{localStorage.setItem(CHAVE,JSON.stringify(M));}
+  try{localStorage.setItem(CHAVE,JSON.stringify(D));}
   catch(e){ if(!avisouSalvar){avisouSalvar=true;avisar("Não foi possível salvar no navegador. Use Copiar mapa (JSON) para guardar o trabalho.",true);} }
 }
 function carregar(){
@@ -904,12 +1033,12 @@ function alterou(){
 }
 
 /* ---- histórico ---- */
-function fotografar(){pilhaU.push(JSON.stringify(M)); if(pilhaU.length>150)pilhaU.shift(); pilhaR.length=0;}
+function fotografar(){pilhaU.push(JSON.stringify(D)); if(pilhaU.length>150)pilhaU.shift(); pilhaR.length=0;}
 function acao(fn){fotografar();ultChave=null;fn();alterou();}
 function editar(chave,fn){ if(ultChave!==chave){fotografar();ultChave=chave;} fn(); alterou(); }
 function restaurar(de,para){
   if(!de.length)return;
-  para.push(JSON.stringify(M)); M=JSON.parse(de.pop()); ultChave=null;
+  fecharPop(); para.push(JSON.stringify(D)); D=JSON.parse(de.pop()); ultChave=null; atualizarVista();
   if(sel&&!alvo(sel))sel=null;
   alterou(); montarPainel();
 }
@@ -931,20 +1060,29 @@ function atualizarUI(){
   setText($("vDem"),mil(c.demandaDia));
   setText($("vDisp"),mil(C.dispDia/60));
   setText($("vTakt"),C.takt>0?n1(C.takt):"—");
+  var fut=vendo==="futuro",CA=calcAtual();
+  setText($("lLead"),"Lead time"+(fut?" · atual "+nf(CA.lead,1):""));
+  setText($("lTav"),"Tempo de agregação"+(fut?" · atual "+n1(CA.tav):""));
+  setText($("lEff"),"Eficiência do fluxo"+(fut?" · atual "+nf(CA.eff,3):""));
+  $("kLead").className="kpi "+(fut&&C.lead<CA.lead?"ok":"hot");
   setText($("vLead"),c.demandaDia>0?nf(C.lead,1):"—");
   setText($("vTav"),n1(C.tav));
   setText($("vEff"),C.lead>0&&C.dispDia>0?nf(C.eff,3):"—");
-  $("tagEx").hidden=!M.exemplo;
+  $("tagEx").hidden=!D.exemplo;
   var m=M.mapa,dt=/^\d{4}-\d{2}-\d{2}$/.test(m.data)?m.data.split("-").reverse().join("/"):m.data;
   setText($("sub"),[m.nome,m.familia&&("Família: "+m.familia),m.clienteFinal,dt].filter(Boolean).join(" · "));
-  var s="<strong>Estado atual</strong>",temProc=M.nos.some(function(n){return n.tipo==="processo";});
+  var s="<strong>Estado "+(fut?"futuro":"atual")+"</strong>",temProc=M.nos.some(function(n){return n.tipo==="processo";});
   if(!noDoTipo(M,"cliente"))s+="Comece pelo cliente: arraste a peça Cliente para o mapa e informe a demanda diária.";
   else if(c.demandaDia<=0)s+="Selecione o cliente e informe a demanda diária, os turnos e o tempo disponível para calcular o takt.";
   else if(!temProc)s+="Takt de "+n1(C.takt)+" s. Agora adicione os postos de trabalho e o fornecedor.";
   else {
     s+="Takt de "+n1(C.takt)+" s. ";
     if(!C.completo)s+="O fluxo ainda não vai do fornecedor ao cliente: ligue as peças arrastando do ponto de saída de uma até a outra. ";
-    else s+="Fluxo empurrado do fornecedor ao cliente, com "+nf(C.lead,1)+" dias de estoque para "+n1(C.tav)+" s de agregação de valor. ";
+    else if(fut){
+      s+="Lead time de "+nf(CA.lead,1)+" para "+nf(C.lead,1)+" dias"+(CA.lead>0?" ("+(C.lead<=CA.lead?"−":"+")+Math.abs(Math.round((1-C.lead/CA.lead)*100))+"%)":"")+", com "+n1(C.tav)+" s de agregação de valor. ";
+      s+=C.puxador?"Puxador: "+esc(C.puxador.dados.nome)+". ":"Ainda sem processo puxador. ";
+    }
+    else s+="Do fornecedor ao cliente, "+nf(C.lead,1)+" dias de estoque para "+n1(C.tav)+" s de agregação de valor. ";
     if(C.gargalos.length)s+="<em>Gargalo: "+C.gargalos.map(function(n){return esc(n.dados.nome)+" (T/C "+n1(n.dados.tc)+" s)";}).join(", ")+", acima do takt.</em>";
     else if(C.completo)s+="Nenhum processo acima do takt.";
   }
@@ -1039,21 +1177,21 @@ function inserir(d,wx,wy,lig){
   if(dividiu)avisar(no.dados.nome+" inserido no meio da ligação. A linha do tempo foi atualizada.");
 }
 function tentarLigar(a,b){
-  var r,antes=JSON.stringify(M);
+  var r,antes=JSON.stringify(D);
   r=ligar(M,a,b);
   if(r.erro){avisar(r.erro,true);return;}
   pilhaU.push(antes);pilhaR.length=0;ultChave=null;alterou();selecionar(r.sel);
 }
 function trocarMapa(novo,msg){
-  acao(function(){M=novo;});
+  acao(function(){D=novo;vendo="atual";atualizarVista();});
   sel=null;montarPainel();enquadrar(); if(msg)avisar(msg);
 }
 function setModo(m){
-  modo=m;ui.edit=m==="editar";arr=null;armado=null;fantasma=null;marcarPaleta();
+  fecharPop();modo=m;ui.edit=m==="editar";arr=null;armado=null;fantasma=null;marcarPaleta();
   document.body.classList.toggle("apresentar",m!=="editar");
   $("bEdit").setAttribute("aria-pressed",String(m==="editar"));$("bShow").setAttribute("aria-pressed",String(m!=="editar"));
   $("hint").textContent=m==="editar"
-    ?"Arraste peças da paleta para o chão. Arraste do ponto amarelo de uma peça até outra para ligar. Chão vazio move a câmera."
+    ?"Arraste peças da paleta. Ponto amarelo liga uma peça a outra. Clique no balão ou dê dois cliques no posto para digitar os dados."
     :"Arraste para mover a cena";
   if(m!=="editar"&&paused&&!reduzMov)setPaused(false);
   resize();
@@ -1140,7 +1278,7 @@ function montarPainel(){
   side.textContent="";leitura=null;
   var sec=el("div",{class:"sec"}),o=sel&&alvo(sel);
   side.appendChild(sec);
-  if(!o){sel=null;painelMapa(sec);}
+  if(!o){sel=null; if(vendo==="futuro")painelGuia(sec); else painelMapa(sec);}
   else if(sel.tipo==="no"){
     if(o.tipo==="processo")painelProcesso(sec,o); else if(o.tipo==="cliente")painelCliente(sec,o);
     else if(o.tipo==="fornecedor")painelFornecedor(sec,o); else painelPcp(sec,o);
@@ -1150,10 +1288,59 @@ function montarPainel(){
   painelArquivo();
   if(leitura)leitura();
 }
+function marca(pai,rot,val,fn){
+  var id="c"+(++seqCampo),inp=el("input",{id:id,type:"checkbox"});inp.checked=!!val;
+  inp.addEventListener("change",function(){fn(inp.checked);});
+  pai.appendChild(el("div",{class:"chk"},[inp,el("label",{for:id,text:rot})]));
+}
+/* as oito questões do livro para o estado futuro, respondidas a partir do mapa */
+function guia(M,C){
+  var pl=M.plano||{},ehP=function(id){return C.by[id].tipo==="processo";},
+      entreP=M.ligacoes.filter(function(l){return ehP(l.origem)&&ehP(l.destino);}),
+      emp=M.ligacoes.filter(function(l){return l.fluxo==="empurrado";}).length,
+      sup=M.ligacoes.filter(function(l){return l.fluxo==="supermercado";}).length,
+      cont=entreP.filter(function(l){return l.fluxo==="continuo"||l.fluxo==="fifo";}).length,
+      cli=noDoTipo(M,"cliente"),le=cli&&C.ent[cli.id],pcp=noDoTipo(M,"pcp"),px=C.puxador,r=[];
+  r.push({q:"1. Qual é o takt?",ok:C.takt>0&&!C.gargalos.length,
+    t:C.takt<=0?"Informe a demanda do cliente.":"Takt de "+n1(C.takt)+" s. "+(C.gargalos.length?"Acima do takt: "+C.gargalos.map(function(n){return n.dados.nome;}).join(", ")+". Registre o kaizen e o novo T/C.":"Todos os processos dentro do takt.")});
+  r.push({q:"2. Supermercado de acabados ou expedição direta?",ok:!!le&&le.fluxo!=="empurrado",
+    t:!le?"Ligue o último processo ao cliente.":le.fluxo==="supermercado"?"Supermercado de produtos acabados com "+mil(le.estoquePecas)+" peças.":le.fluxo==="empurrado"?"A expedição ainda é empurrada. Selecione a ligação com o cliente e escolha o tipo de fluxo.":"Produção direto para a expedição."});
+  r.push({q:"3. Onde usar fluxo contínuo?",ok:cont>0,
+    t:cont?cont+" ligação(ões) entre processos em fluxo contínuo ou FIFO.":"Nenhuma ligação em fluxo contínuo ou FIFO. Avalie processos vizinhos com T/C parecido e próximo do takt."});
+  r.push({q:"4. Onde usar supermercados puxados?",ok:M.ligacoes.length>0&&emp===0,
+    t:sup+" supermercado(s). "+(emp?emp+" ligação(ões) ainda empurrada(s).":"Nenhuma ligação empurrada.")});
+  var t5,ok5=false;
+  if(!px)t5="Selecione um processo e marque Processo puxador.";
+  else {
+    var outros=M.fluxosInfo.filter(function(f){return pcp&&f.origem===pcp.id&&ehP(f.destino)&&f.destino!==px.id;}).length,ruim=0,c=px.id,g=0,l;
+    while((l=C.sai[c])&&g++<500){ if(ehP(l.destino)&&(l.fluxo==="supermercado"||l.fluxo==="empurrado"))ruim++; c=l.destino; }
+    ok5=!outros&&!ruim;
+    t5="Puxador: "+px.dados.nome+". "+(outros?outros+" outro(s) processo(s) ainda recebe(m) programação do PCP: exclua essas setas. ":"")+(ruim?"Depois do puxador o fluxo deve ser contínuo ou FIFO até o cliente.":"")+(ok5?"Só ele recebe a programação.":"");
+  }
+  r.push({q:"5. Qual é o processo puxador?",ok:ok5,t:t5});
+  r.push({q:"6. Como nivelar o mix no puxador?",ok:!!pl.nivelamento,t:pl.nivelamento?"Mix nivelado com caixa de nivelamento (OXOX) no puxador.":"Marque abaixo quando o puxador receber o mix nivelado."});
+  var pit=C.takt>0&&pl.pecasEmbalagem>0?C.takt*pl.pecasEmbalagem:0;
+  r.push({q:"7. Qual incremento de trabalho liberar (pitch)?",ok:pit>0,t:pit?"Pitch = "+n1(C.takt)+" s × "+mil(pl.pecasEmbalagem)+" peças = "+n1(pit/60)+" min.":"Informe abaixo as peças por embalagem."});
+  var kz=M.nos.filter(function(n){return n.tipo==="processo"&&n.dados.kaizen;}).length;
+  r.push({q:"8. Que melhorias de processo são necessárias?",ok:kz>0,t:kz?kz+" kaizen(s) registrado(s) nos processos.":"Selecione um processo e descreva o kaizen necessário."});
+  return r;
+}
+function painelGuia(sec){
+  sec.appendChild(el("h2",{text:"Estado futuro guiado"}));
+  sec.appendChild(el("p",{class:"nota",text:"As oito questões do livro. Edite o mapa: troque o tipo de fluxo das ligações, ajuste os dados dos processos e as setas de informação."}));
+  var lista=el("div",{class:"guia"});sec.appendChild(lista);
+  var pl=D.futuro.plano;
+  campo(sec,"Peças por embalagem (pitch)",pl.pecasEmbalagem,{tipo:"number",min:0,vazio:true,dica:"ex.: 20"},function(v){D.futuro.plano.pecasEmbalagem=v;});
+  marca(sec,"Mix nivelado no puxador (heijunka)",pl.nivelamento,function(v){acao(function(){D.futuro.plano.nivelamento=v;});});
+  leitura=function(){ if(vendo!=="futuro")return; lista.textContent="";
+    guia(M,calc()).forEach(function(i){lista.appendChild(el("div",{class:"gi"+(i.ok?" ok":"")},[el("b",{text:(i.ok?"✓ ":"○ ")+i.q}),el("span",{text:i.t})]));});};
+  botoes(sec,[["Recriar a partir do atual",function(){acao(function(){D.futuro=estadoFuturoDe(D);});atualizarVista();sel=null;montarPainel();avisar("Estado futuro recriado como cópia do atual. Ctrl+Z desfaz.");}],
+    ["Excluir estado futuro",function(){acao(function(){D.futuro=null;});vendo="atual";atualizarVista();sel=null;montarPainel();atualizarUI();avisar("Estado futuro excluído. Ctrl+Z desfaz.");},"perigo"]]);
+}
 function painelMapa(sec){
   sec.appendChild(el("h2",{text:"Mapa"}));
   var m=M.mapa;
-  campo(sec,"Nome do mapa",m.nome,{},function(v){M.mapa.nome=v;M.exemplo=false;});
+  campo(sec,"Nome do mapa",m.nome,{},function(v){D.mapa.nome=v;D.exemplo=false;});
   campo(sec,"Família de produtos",m.familia,{},function(v){M.mapa.familia=v;});
   campo(sec,"Cliente final",m.clienteFinal,{},function(v){M.mapa.clienteFinal=v;});
   campo(sec,"Data",m.data,{tipo:"date"},function(v){M.mapa.data=v;});
@@ -1173,6 +1360,10 @@ function painelProcesso(sec,no){
   campo(g,"Tempo disp. (s/dia)",d.tempoDisp,{tipo:"number",min:0},function(v){no.dados.tempoDisp=v;});
   campo(g,"Refugo (%)",d.refugo,{tipo:"number",min:0,max:100,vazio:true,dica:"opcional"},function(v){no.dados.refugo=v;});
   campo(sec,"Lote ou TPT (toda peça todo...)",d.lote,{dica:"ex.: 1 semana"},function(v){no.dados.lote=v;});
+  if(vendo==="futuro"){
+    campo(sec,"Kaizen necessário",d.kaizen,{dica:"ex.: reduzir a troca para 10 min"},function(v){no.dados.kaizen=v;});
+    marca(sec,"Processo puxador (recebe a programação)",no.puxador,function(v){acao(function(){M.nos.forEach(function(n){delete n.puxador;}); if(v)no.puxador=true;});});
+  }
   var lt=el("p",{class:"leit"});sec.appendChild(lt);
   leitura=function(){var C=calc(),n=noPorId(M,no.id); if(!n)return;
     if(C.takt<=0){lt.className="leit";lt.textContent="Informe a demanda do cliente para comparar o T/C com o takt.";}
@@ -1216,11 +1407,11 @@ function painelPcp(sec,no){
 function painelLigacao(sec,l){
   sec.appendChild(el("h2",{text:"Ligação e estoque"}));
   sec.appendChild(el("p",{class:"nota",text:nomeNo(noPorId(M,l.origem))+" → "+nomeNo(noPorId(M,l.destino))}));
-  campo(sec,"Estoque (peças)",l.estoquePecas,{tipo:"number",min:0,step:1,inteiro:true},function(v){l.estoquePecas=v;});
-  escolha(sec,"Tipo de fluxo",l.fluxo,Object.keys(FLUXOS).map(function(k){return [k,FLUXOS[k].rotulo,!FLUXOS[k].ativo];}),function(v){acao(function(){l.fluxo=v;});});
+  escolha(sec,"Tipo de fluxo",l.fluxo,Object.keys(FLUXOS).map(function(k){return [k,FLUXOS[k].rotulo];}),function(v){acao(function(){l.fluxo=v;});montarPainel();});
+  if(l.fluxo!=="continuo")campo(sec,l.fluxo==="fifo"?"Máximo na pista FIFO (peças)":l.fluxo==="supermercado"?"Supermercado (peças)":"Estoque (peças)",l.estoquePecas,{tipo:"number",min:0,step:1,inteiro:true},function(v){l.estoquePecas=v;});
   var lt=el("p",{class:"leit"});sec.appendChild(lt);
   leitura=function(){var x=ligPorId(M,l.id); if(!x)return; var C=calc();
-    lt.textContent=M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia)+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
+    lt.textContent=x.fluxo==="continuo"?"Fluxo contínuo: a peça passa direto ao processo seguinte, sem estoque.":M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia)+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
       :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.";};
   botoes(sec,[["Excluir ligação",excluirSelecao,"perigo"]]);
 }
@@ -1240,6 +1431,41 @@ function painelArquivo(){
   sec.appendChild(el("p",{class:"nota",text:"O mapa é salvo automaticamente neste navegador."}));
 }
 
+/* ---- campo de digitação direto no posto ---- */
+var pop=$("pop");
+function fecharPop(){ if(pop.hidden)return; pop.hidden=true;pop.textContent="";ultChave=null;montarPainel(); }
+function abrirPop(no){
+  if(!no||no.tipo!=="processo"||modo!=="editar")return;
+  pop.textContent="";pop.hidden=false;
+  var d=no.dados,g=el("div",{class:"g2"}),pr;
+  pop.appendChild(el("h2",{text:"Dados do posto"}));
+  campo(pop,"Nome do processo",d.nome,{},function(v){no.dados.nome=v;});
+  pop.appendChild(g);
+  pr=campo(g,"T/C (s)",d.tc,{tipo:"number",min:0},function(v){no.dados.tc=v;});
+  campo(g,"T/R (min)",d.tr,{tipo:"number",min:0},function(v){no.dados.tr=v;});
+  campo(g,"Disponibilidade (%)",d.disp,{tipo:"number",min:0,max:100},function(v){no.dados.disp=v;});
+  campo(g,"Operadores",d.op,{tipo:"number",min:0,max:99,step:1,inteiro:true},function(v){no.dados.op=v;});
+  campo(g,"Tempo disp. (s/dia)",d.tempoDisp,{tipo:"number",min:0},function(v){no.dados.tempoDisp=v;});
+  campo(g,"Refugo (%)",d.refugo,{tipo:"number",min:0,max:100,vazio:true,dica:"opcional"},function(v){no.dados.refugo=v;});
+  campo(pop,"Lote ou TPT (toda peça todo...)",d.lote,{dica:"ex.: 1 semana"},function(v){no.dados.lote=v;});
+  botoes(pop,[["Concluir",fecharPop]]);
+  cam();var r=ui.rets[no.id],q=P(no.pos.x,no.pos.y,5),x=r?r[0]:q[0]-150,y=r?r[1]:q[1]-120;
+  pop.style.left=Math.max(8,Math.min(W-pop.offsetWidth-8,x))+"px";
+  pop.style.top=Math.max(8,Math.min(H-pop.offsetHeight-8,y))+"px";
+  pr.focus();pr.select();
+}
+pop.addEventListener("keydown",function(e){ if(e.key==="Enter"){e.preventDefault();fecharPop();} });
+function cartaoEm(x,y){
+  for(var id in ui.rets){var r=ui.rets[id]; if(x>=r[0]&&x<=r[0]+r[2]&&y>=r[1]&&y<=r[1]+r[3])return noPorId(M,id);}
+  return null;
+}
+function setBaloes(v){
+  ui.baloes=v;$("bBal").setAttribute("aria-pressed",String(v));
+  try{localStorage.setItem(CHAVE+".baloes",v?"1":"0");}catch(e){}
+}
+$("bBal").addEventListener("click",function(){setBaloes(!ui.baloes);});
+try{ if(localStorage.getItem(CHAVE+".baloes")==="0")setBaloes(false); }catch(e){}
+
 /* ---- copiar e colar JSON ---- */
 var dlg=$("dlg"),dlgTa=$("dlgTa");
 function abrirDlg(titulo,texto,valor,carregar){
@@ -1249,7 +1475,7 @@ function abrirDlg(titulo,texto,valor,carregar){
   dlgTa.focus(); if(!carregar)dlgTa.select();
 }
 function copiarMapa(){
-  var js=JSON.stringify(M,null,1);
+  var js=JSON.stringify(D,null,1);
   function reserva(){abrirDlg("Copiar mapa (JSON)","Selecione todo o texto, copie com Ctrl+C e cole em Colar mapa (JSON) no outro computador.",js,false);}
   try{ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(js).then(function(){avisar("Mapa copiado. No outro computador, use Colar mapa (JSON).");},reserva); else reserva(); }
   catch(e){reserva();}
@@ -1269,7 +1495,9 @@ cv.addEventListener("pointerdown",function(e){
   if(e.pointerType==="mouse"&&e.button!==0)return;
   var m=pt(e),n,l,f,w; rato.x=m.x;rato.y=m.y;rato.dentro=true; cam();
   try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  fecharPop();
   if(modo==="editar"){
+    if((n=cartaoEm(m.x,m.y))&&!armado&&!portaEm(m.x,m.y)){selecionar({tipo:"no",id:n.id});abrirPop(n);return;}
     if(armado){var d=armado;armado=null;marcarPaleta();soltarPeca(d,m.x,m.y);return;}
     if((n=portaEm(m.x,m.y))){arr={k:"lig",de:n.id};return;}
     if((n=noEm(m.x,m.y))){selecionar({tipo:"no",id:n.id});w=chao(m.x,m.y);arr={k:"no",id:n.id,ox:n.pos.x-w[0],oy:n.pos.y-w[1],sx:m.x,sy:m.y,mov:false,foto:false};return;}
@@ -1318,6 +1546,7 @@ function fimPonteiro(e){
     }
   }
 }
+cv.addEventListener("dblclick",function(e){var m=pt(e),n=noEm(m.x,m.y); if(n&&n.tipo==="processo"){selecionar({tipo:"no",id:n.id});abrirPop(n);}});
 cv.addEventListener("pointerup",fimPonteiro);
 cv.addEventListener("pointercancel",fimPonteiro);
 cv.addEventListener("pointerleave",function(){rato.dentro=false; if(!arr)ui.hover=null;});
@@ -1326,7 +1555,7 @@ cv.addEventListener("wheel",function(e){e.preventDefault();var m=pt(e);darZoom(e
 /* ---- teclado ---- */
 document.addEventListener("keydown",function(e){
   var tg=e.target,emCampo=tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName));
-  if(e.key==="Escape"){ if(dlg.open)return; armado=null;fantasma=null;arr=null;marcarPaleta(); if(!emCampo)selecionar(null); return; }
+  if(e.key==="Escape"){ if(dlg.open)return; if(!pop.hidden){fecharPop();return;} armado=null;fantasma=null;arr=null;marcarPaleta(); if(!emCampo)selecionar(null); return; }
   if(modo!=="editar"||emCampo||dlg.open)return;
   var k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
   if(ctrl&&k==="z"&&!e.shiftKey){e.preventDefault();desfazer();}
@@ -1384,6 +1613,8 @@ function frame(now){
 var bPause=$("bPause"),reduzMov=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 function setPaused(v){paused=v;bPause.textContent=v?"Continuar":"Pausar";}
 bPause.addEventListener("click",function(){setPaused(!paused);});
+$("bCur").addEventListener("click",function(){setEstado("atual");});
+$("bFut").addEventListener("click",function(){setEstado("futuro");});
 $("bEdit").addEventListener("click",function(){setModo("editar");});
 $("bShow").addEventListener("click",function(){selecionar(null);setModo("apresentar");});
 $("bUndo").addEventListener("click",desfazer);
@@ -1395,7 +1626,8 @@ if(window.ResizeObserver)new ResizeObserver(resize).observe(stage); else window.
 window.addEventListener("beforeunload",function(){clearTimeout(salvarTmr);salvar();});
 
 /* ---- partida ---- */
-M=carregar()||mapaExemplo();
+D=carregar()||mapaExemplo();
+atualizarVista();
 montarPaleta();
 setModo("editar");
 montarPainel();
@@ -1405,7 +1637,7 @@ if(reduzMov)setPaused(true);
 requestAnimationFrame(frame);
 
 /* gancho para testes e para a próxima fase */
-window.MF={modelo:function(){return M;},calc:calc,tela:function(x,y){cam();return P(x,y,0);},exemplo:mapaExemplo,normalizar:normalizar};
+window.MF={modelo:function(){return D;},vista:function(){return M;},calc:calc,tela:function(x,y){cam();return P(x,y,0);},exemplo:mapaExemplo,normalizar:normalizar};
 })();
 </script>
 </body>
