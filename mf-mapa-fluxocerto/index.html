@@ -1,0 +1,1412 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MF · Mapa do FluxoCerto</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* layout: faixa de comando no topo, indicadores em linha; abaixo, paleta | chão de fábrica | painel de dados */
+  --floor:#e7ebf0; --ink:#18212d; --muted:#5b6878; --panel:#ffffff; --line:#cdd5de;
+  --accent:#f2b705; --steel:#2c4a6e; --bad:#d23b2a; --good:#178a5a;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Barlow","Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--floor);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.4}
+.wrap{height:100vh;min-height:620px;padding:12px 16px;display:flex;flex-direction:column;gap:10px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:flex-end;justify-content:space-between;
+  border-bottom:4px solid var(--ink);padding-bottom:10px;position:relative}
+.bar::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;
+  background:repeating-linear-gradient(135deg,var(--accent) 0 12px,var(--ink) 12px 24px)}
+h1{font-family:var(--display);font-weight:700;font-size:32px;line-height:1;margin:0;letter-spacing:.5px;text-transform:uppercase;text-wrap:balance}
+.tag{display:inline-block;vertical-align:middle;margin-left:8px;font-size:14px;letter-spacing:.6px;background:var(--accent);color:var(--ink);padding:2px 8px;border-radius:3px}
+.tag[hidden]{display:none}
+.sub{margin:4px 0 0;color:var(--muted);font-size:14px}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:flex;border:2px solid var(--ink);border-radius:4px;overflow:hidden}
+button{font-family:var(--display);font-weight:600;font-size:16px;letter-spacing:.4px;text-transform:uppercase;
+  border:2px solid var(--ink);background:var(--panel);color:var(--ink);padding:5px 11px;border-radius:4px;cursor:pointer}
+.seg button{border:0;border-radius:0}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--accent)}
+button:hover{background:#f5f7f9}
+.seg button[aria-pressed="true"]:hover{background:var(--ink)}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.42;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-top:8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--steel);border-radius:3px;padding:6px 10px}
+.kpi.hot{border-left-color:var(--bad)} .kpi.ok{border-left-color:var(--good)}
+.kpi b{display:block;font-family:var(--display);font-weight:700;font-size:26px;line-height:1.05;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.kpi small{font-size:14px;font-weight:500;color:var(--muted);font-family:var(--body)}
+.kpi i{font-style:normal}
+.state{margin:0;font-size:15px}
+.state strong{font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.4px;margin-right:6px}
+.state em{font-style:normal;color:var(--bad);font-weight:600}
+.work{flex:1;min-height:0;display:grid;grid-template-columns:158px minmax(0,1fr) 294px;gap:10px}
+body.apresentar .work{grid-template-columns:minmax(0,1fr)}
+body.apresentar .pal,body.apresentar .side,body.apresentar .soEd{display:none}
+.pal,.side{background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow:auto;min-height:0}
+.pal{padding:8px;display:flex;flex-direction:column;gap:5px}
+.pal h2,.side h2{font-family:var(--display);font-size:17px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 2px}
+.pal h3{font-size:11.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:6px 0 0;font-weight:600}
+.pc{display:flex;align-items:center;gap:7px;width:100%;text-align:left;font-size:15px;padding:4px 7px;border-width:1.5px;touch-action:none;user-select:none;cursor:grab}
+.pc i{flex:none;width:13px;height:13px;border-radius:2px;border:1px solid rgba(24,33,45,.5)}
+.pc[aria-pressed="true"]{background:var(--ink);color:var(--accent)}
+.pal p{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.35}
+.side{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.side .sec{display:flex;flex-direction:column;gap:7px}
+.side .sec+.sec{border-top:1px solid var(--line);padding-top:10px}
+.side .arq{margin-top:auto}
+.fld{display:flex;flex-direction:column;gap:2px}
+.fld label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:600}
+.fld input,.fld select,textarea{font:inherit;font-size:15px;color:var(--ink);background:#fff;border:1.5px solid var(--line);border-radius:3px;padding:4px 7px;width:100%}
+.fld input:focus,.fld select:focus,textarea:focus{outline:2px solid var(--accent);border-color:var(--ink)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.leit{font-size:13.5px;background:#f3f5f8;border-left:4px solid var(--steel);padding:5px 8px;margin:0;border-radius:2px}
+.leit.bad{border-left-color:var(--bad);color:#8f2317}
+.nota{font-size:12.5px;color:var(--muted);margin:0;line-height:1.4}
+.btns{display:flex;flex-wrap:wrap;gap:6px}
+.btns button{font-size:14.5px;padding:4px 9px;border-width:1.5px}
+button.perigo{border-color:var(--bad);color:var(--bad)}
+.lst{display:flex;flex-direction:column;gap:4px}
+.lst button{text-transform:none;font-family:var(--body);font-size:13px;font-weight:500;letter-spacing:0;text-align:left;border-width:1px;border-color:var(--line);padding:4px 7px}
+.stage{position:relative;min-height:0;background:linear-gradient(#f3f5f8,#dfe5eb);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.hint{position:absolute;left:10px;bottom:8px;right:10px;width:fit-content;font-size:12px;color:var(--muted);background:rgba(255,255,255,.8);padding:2px 8px;border-radius:3px;pointer-events:none}
+.toast{position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:min(92%,560px);background:var(--ink);color:#fff;font-size:14px;padding:8px 14px;border-radius:4px;border-left:6px solid var(--accent);box-shadow:0 4px 14px rgba(24,33,45,.25);opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+.toast.erro{border-left-color:var(--bad)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 20px;font-size:13px;color:var(--muted);margin:0;padding:0;list-style:none}
+.legend li{display:flex;align-items:center;gap:7px}
+.legend svg{flex:none}
+dialog{border:2px solid var(--ink);border-radius:5px;padding:16px;width:min(640px,92vw);color:var(--ink);font-family:var(--body)}
+dialog::backdrop{background:rgba(24,33,45,.45)}
+dialog h2{font-family:var(--display);text-transform:uppercase;margin:0 0 4px;font-size:22px}
+dialog p{margin:0 0 8px;font-size:14px;color:var(--muted)}
+dialog textarea{height:220px;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;resize:vertical}
+dialog .btns{margin-top:10px;justify-content:flex-end}
+#dlgErro{color:var(--bad);font-weight:600;min-height:1.2em;margin:6px 0 0}
+@media (max-width:900px){
+  .wrap{height:auto}
+  .work{grid-template-columns:minmax(0,1fr)}
+  .stage{height:62vh;min-height:380px}
+  .pal{flex-direction:row;flex-wrap:wrap}
+  .pal h2,.pal h3,.pal p{width:100%}
+  .pc{width:auto}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div>
+      <h1>MF · Mapa do FluxoCerto<span class="tag" id="tagEx" hidden>Exemplo</span></h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="ctl">
+      <div class="seg" role="group" aria-label="Modo de trabalho">
+        <button id="bEdit" aria-pressed="true">Editar</button>
+        <button id="bShow" aria-pressed="false">Apresentar</button>
+      </div>
+      <div class="seg" role="group" aria-label="Estado do mapa">
+        <button id="bCur" aria-pressed="true">Estado atual</button>
+        <button id="bFut" aria-pressed="false" disabled title="Disponível na próxima fase">Estado futuro</button>
+      </div>
+      <button id="bUndo" class="soEd" title="Desfazer (Ctrl+Z)">Desfazer</button>
+      <button id="bRedo" class="soEd" title="Refazer (Ctrl+Y)">Refazer</button>
+      <button id="bPause">Pausar</button>
+      <button id="bOut" aria-label="Diminuir zoom">−</button>
+      <button id="bIn" aria-label="Aumentar zoom">+</button>
+      <button id="bFit" title="Enquadrar o mapa inteiro">Enquadrar</button>
+    </div>
+  </header>
+
+  <section class="kpis" aria-label="Indicadores">
+    <div class="kpi"><span>Demanda</span><b><i id="vDem"></i> <small>pç/dia</small></b></div>
+    <div class="kpi"><span>Tempo disponível</span><b><i id="vDisp"></i> <small>min/dia</small></b></div>
+    <div class="kpi"><span>Takt time</span><b><i id="vTakt"></i> <small>s</small></b></div>
+    <div class="kpi hot"><span>Lead time</span><b><i id="vLead"></i> <small>dias</small></b></div>
+    <div class="kpi"><span>Tempo de agregação</span><b><i id="vTav"></i> <small>s</small></b></div>
+    <div class="kpi"><span>Eficiência do fluxo</span><b><i id="vEff"></i> <small>%</small></b></div>
+  </section>
+
+  <p class="state" id="stateTxt"></p>
+
+  <div class="work">
+    <aside class="pal" id="pal" aria-label="Paleta de peças"></aside>
+    <div class="stage" id="stage">
+      <canvas id="cv" role="img" aria-label="Mapa de fluxo de valor isométrico animado: fornecedor, controle da produção e cliente, postos de trabalho com estoques entre eles e a linha do tempo na frente."></canvas>
+      <div class="hint" id="hint"></div>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+    <aside class="side" id="side" aria-label="Dados da peça selecionada"></aside>
+  </div>
+
+  <ul class="legend">
+    <li>T/C: tempo de ciclo. T/R: tempo de troca. Disp: disponibilidade. Op: operadores. TPT: toda peça todo...</li>
+    <li><svg width="20" height="18"><path d="M10 1 19 17H1z" fill="#ffd23f" stroke="#18212d" stroke-width="1.5"/></svg>Estoque em peças e dias</li>
+    <li><svg width="30" height="12"><path d="M0 3h5v6H0zM10 3h5v6h-5z" fill="#18212d"/><path d="M5 3h5v6H5zM15 3h5v6h-5z" fill="#fff" stroke="#18212d" stroke-width=".5"/><path d="M20 0l9 6-9 6z" fill="#18212d"/></svg>Fluxo empurrado</li>
+    <li><svg width="30" height="12"><path d="M0 6h9l3-5 4 10 3-5h10" fill="none" stroke="#1f6fd6" stroke-width="2"/></svg>Informação eletrônica</li>
+    <li><svg width="30" height="12"><path d="M0 6h29" fill="none" stroke="#1f6fd6" stroke-width="2"/></svg>Informação manual</li>
+    <li><svg width="30" height="14"><path d="M0 2h10v10H0z" fill="#d9685c"/><path d="M10 9h10v3H10z" fill="#2f9e6e"/><path d="M20 4h10v8H20z" fill="#d9685c"/></svg>Linha do tempo: espera no degrau alto, agregação no baixo</li>
+  </ul>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlgT">
+  <h2 id="dlgT"></h2>
+  <p id="dlgP"></p>
+  <textarea id="dlgTa" spellcheck="false" aria-label="Mapa em JSON"></textarea>
+  <p id="dlgErro" role="alert"></p>
+  <div class="btns">
+    <button id="dlgOk">Carregar mapa</button>
+    <button id="dlgX">Fechar</button>
+  </div>
+</dialog>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================================
+   1. MODELO  -  todo o mapa vive em um único objeto JSON (variável M)
+   ========================================================================= */
+var CHAVE="fluxocerto.mf.mapa.v1", VERSAO=1;
+var INK="#18212d", CRU="#66768a", AZUL="#1f6fd6";
+
+/* catálogo de estações: cor, altura de apoio da peça, cor da peça na saída */
+var CAT={
+  laser:   {rotulo:"Corte laser",nome:"CORTE LASER",cor:"#2f6fb5",tz:1.3,saida:"#9fb0bf",wx:2.6,acena:false},
+  dobra:   {rotulo:"Dobra",      nome:"DOBRA",      cor:"#7a5bd0",tz:1.5,saida:"#a9b8c6",wx:2.9,acena:true},
+  solda:   {rotulo:"Solda",      nome:"SOLDA",      cor:"#d9542b",tz:1.2,saida:"#8696a6",wx:2.6,acena:true},
+  pintura: {rotulo:"Pintura",    nome:"PINTURA",    cor:"#1d9a8a",tz:1.5,saida:"#e8792b",wx:2.6,acena:false},
+  montagem:{rotulo:"Montagem",   nome:"MONTAGEM",   cor:"#c98a12",tz:1.3,saida:null,     wx:2.6,acena:true},
+  usinagem:{rotulo:"Usinagem",   nome:"USINAGEM",   cor:"#4f8a3c",tz:1.4,saida:"#b9c6d2",wx:2.6,acena:false},
+  inspecao:{rotulo:"Inspeção",   nome:"INSPEÇÃO",   cor:"#b0457a",tz:1.3,saida:null,     wx:2.6,acena:false},
+  generico:{rotulo:"Genérico",   nome:"PROCESSO",   cor:"#5f6f82",tz:1.3,saida:null,     wx:2.6,acena:false}
+};
+var MODELOS=["laser","dobra","solda","pintura","montagem","usinagem","inspecao","generico"];
+/* pe: pegada no chão relativa à posição [x0,y0,x1,y1]; alt: altura do volume para seleção */
+var TIPOS={
+  processo:  {rotulo:"Posto de trabalho",     pe:[-3.5,-4,3.5,4],     alt:4.6, cor:"#5f6f82"},
+  fornecedor:{rotulo:"Fornecedor",            pe:[-3,-3,3,3],         alt:5.8, cor:"#55606e"},
+  cliente:   {rotulo:"Cliente",               pe:[-3,-3,3,3],         alt:5.8, cor:"#55606e"},
+  pcp:       {rotulo:"Controle da produção",  pe:[-4.3,-3.3,4.3,3.3], alt:5.4, cor:"#2c4a6e"}
+};
+/* tipos de fluxo de material: só o empurrado está ativo na fase 1 */
+var FLUXOS={empurrado:{rotulo:"Empurrado",ativo:true},supermercado:{rotulo:"Puxado com supermercado (fase 2)",ativo:false},fifo:{rotulo:"FIFO (fase 2)",ativo:false}};
+var TIPOS_INFO={eletronica:"Eletrônica",manual:"Manual"};
+
+function num(v,def,min,max){
+  var n=typeof v==="number"?v:parseFloat(String(v==null?"":v).replace(",","."));
+  if(!isFinite(n))n=def; if(min!=null&&n<min)n=min; if(max!=null&&n>max)n=max; return n;
+}
+function txt(v,def){return typeof v==="string"?v.slice(0,120):(typeof v==="number"?String(v):def);}
+function hoje(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+
+function dadosProcesso(d,modelo){
+  d=d||{};
+  var r=d.refugo;
+  return {nome:txt(d.nome,CAT[modelo].nome),tc:num(d.tc,60,0),tr:num(d.tr,0,0),disp:num(d.disp,100,0,100),
+    op:Math.round(num(d.op,1,0,99)),tempoDisp:num(d.tempoDisp,27600,0),lote:txt(d.lote,""),
+    refugo:(r==null||r==="")?null:num(r,0,0,100)};
+}
+function mapaVazio(){
+  return {versao:VERSAO,exemplo:false,
+    mapa:{nome:"Novo mapa",familia:"",clienteFinal:"",data:hoje()},
+    cliente:{demandaDia:0,turnos:1,tempoDisponivelMin:480,freqExpedicao:"diária"},
+    fornecedor:{material:"",freqEntrega:"semanal"},
+    nos:[],ligacoes:[],fluxosInfo:[]};
+}
+function mapaExemplo(){
+  var P=function(id,modelo,x,tc,tr,disp,op){return {id:id,tipo:"processo",modelo:modelo,pos:{x:x,y:22},
+    dados:dadosProcesso({tc:tc,tr:tr,disp:disp,op:op,tempoDisp:27600,lote:"1 semana"},modelo)};};
+  var L=function(id,a,b,q){return {id:id,origem:a,destino:b,fluxo:"empurrado",estoquePecas:q};};
+  var I=function(id,a,b,r,f,t){return {id:id,origem:a,destino:b,rotulo:r,frequencia:f,tipo:t};};
+  return {versao:VERSAO,exemplo:true,
+    mapa:{nome:"Suporte metálico SM-200",familia:"Suportes metálicos",clienteFinal:"Linha metalmecânica fictícia, dados de demonstração",data:hoje()},
+    cliente:{demandaDia:460,turnos:1,tempoDisponivelMin:460,freqExpedicao:"entrega diária"},
+    fornecedor:{material:"Chapa de aço",freqEntrega:"2× por semana"},
+    nos:[
+      {id:"n1",tipo:"fornecedor",pos:{x:4,y:-11}},
+      {id:"n2",tipo:"pcp",pos:{x:36,y:-11},dados:{nome:"PCP",descricao:"Controle da produção, MRP"}},
+      {id:"n3",tipo:"cliente",pos:{x:68,y:-11}},
+      P("n4","laser",10,38,15,90,1),P("n5","dobra",23,52,25,95,1),P("n6","solda",36,72,10,85,2),
+      P("n7","pintura",49,45,30,90,1),P("n8","montagem",62,58,0,100,2)],
+    ligacoes:[L("l1","n1","n4",2300),L("l2","n4","n5",920),L("l3","n5","n6",1380),L("l4","n6","n7",460),L("l5","n7","n8",690),L("l6","n8","n3",1150)],
+    fluxosInfo:[
+      I("i1","n3","n2","Pedidos","diários","eletronica"),
+      I("i2","n2","n1","Pedido","semanal","eletronica"),
+      I("i3","n2","n4","Programação","semanal","manual"),I("i4","n2","n5","Programação","semanal","manual"),
+      I("i5","n2","n6","Programação","semanal","manual"),I("i6","n2","n7","Programação","semanal","manual"),
+      I("i7","n2","n8","Programação","semanal","manual")]};
+}
+
+function noPorId(M,id){for(var i=0;i<M.nos.length;i++)if(M.nos[i].id===id)return M.nos[i];return null;}
+function ligPorId(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].id===id)return M.ligacoes[i];return null;}
+function infoPorId(M,id){for(var i=0;i<M.fluxosInfo.length;i++)if(M.fluxosInfo[i].id===id)return M.fluxosInfo[i];return null;}
+function saidaDe(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].origem===id)return M.ligacoes[i];return null;}
+function entradaDe(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].destino===id)return M.ligacoes[i];return null;}
+function noDoTipo(M,tipo){for(var i=0;i<M.nos.length;i++)if(M.nos[i].tipo===tipo)return M.nos[i];return null;}
+function nomeNo(no){return no.tipo==="processo"?no.dados.nome:no.tipo==="pcp"?no.dados.nome:TIPOS[no.tipo].rotulo;}
+function novoId(M,pfx){
+  var mx=0;
+  [M.nos,M.ligacoes,M.fluxosInfo].forEach(function(a){a.forEach(function(o){
+    if(o.id.charAt(0)===pfx){var n=parseInt(o.id.slice(1),10);if(n>mx)mx=n;}});});
+  return pfx+(mx+1);
+}
+function retNo(no,x,y){var p=TIPOS[no.tipo].pe;x=x==null?no.pos.x:x;y=y==null?no.pos.y:y;return [x+p[0],y+p[1],x+p[2],y+p[3]];}
+function livre(M,tipo,x,y,ignorar){
+  var p=TIPOS[tipo].pe,a0=x+p[0],a1=y+p[1],a2=x+p[2],a3=y+p[3];
+  for(var i=0;i<M.nos.length;i++){var o=M.nos[i]; if(o.id===ignorar)continue;
+    var r=retNo(o); if(a0<r[2]&&a2>r[0]&&a1<r[3]&&a3>r[1])return false;}
+  return true;
+}
+function posLivre(M,tipo,x,y,ignorar){
+  x=Math.round(x);y=Math.round(y);
+  if(livre(M,tipo,x,y,ignorar))return {x:x,y:y};
+  for(var r=1;r<80;r++){
+    var best=null,bd=1e9;
+    for(var dx=-r;dx<=r;dx++)for(var dy=-r;dy<=r;dy++){
+      if(Math.max(Math.abs(dx),Math.abs(dy))!==r)continue;
+      var d=dx*dx+dy*dy; if(d<bd&&livre(M,tipo,x+dx,y+dy,ignorar)){bd=d;best={x:x+dx,y:y+dy};}
+    }
+    if(best)return best;
+  }
+  return {x:x,y:y};
+}
+/* regra da fase 1: fluxo linear. Devolve a mensagem de recusa ou null. */
+function erroLigacao(M,a,b){
+  var A=noPorId(M,a),B=noPorId(M,b);
+  if(!A||!B)return "Peça não encontrada.";
+  if(a===b)return "Uma peça não pode ser ligada a ela mesma.";
+  if(A.tipo==="pcp"||B.tipo==="pcp")return "O controle da produção só troca informação, não material.";
+  if(A.tipo==="cliente")return "O cliente é o fim do fluxo: ele só recebe material.";
+  if(B.tipo==="fornecedor")return "O fornecedor é o início do fluxo: ele só envia material.";
+  if(A.tipo==="fornecedor"&&B.tipo==="cliente")return "Ligue o fornecedor a um posto de trabalho, não direto ao cliente.";
+  if(saidaDe(M,a))return nomeNo(A)+" já tem uma saída. Nesta fase o fluxo é linear, sem ramificação.";
+  if(entradaDe(M,b))return nomeNo(B)+" já tem uma entrada. Nesta fase o fluxo é linear, sem junção de fluxos.";
+  var c=b,g=0; while(c&&g++<500){ if(c===a)return "Esta ligação fecharia um ciclo. O fluxo deve seguir do fornecedor ao cliente."; var l=saidaDe(M,c); c=l?l.destino:null; }
+  return null;
+}
+function rotuloInfoPadrao(A,B){
+  if(A.tipo==="cliente")return {r:"Pedidos",f:"diários",t:"eletronica"};
+  if(A.tipo==="pcp"&&B.tipo==="fornecedor")return {r:"Pedido",f:"semanal",t:"eletronica"};
+  if(A.tipo==="pcp"&&B.tipo==="processo")return {r:"Programação",f:"semanal",t:"manual"};
+  return {r:"Informação",f:"",t:"manual"};
+}
+/* cria ligação de material ou fluxo de informação; devolve {erro} ou {sel} */
+function ligar(M,a,b){
+  var A=noPorId(M,a),B=noPorId(M,b);
+  if(!A||!B||a===b)return {erro:"Uma peça não pode ser ligada a ela mesma."};
+  if(A.tipo==="pcp"||B.tipo==="pcp"){
+    var d=rotuloInfoPadrao(A,B),f={id:novoId(M,"i"),origem:a,destino:b,rotulo:d.r,frequencia:d.f,tipo:d.t};
+    M.fluxosInfo.push(f); return {sel:{tipo:"info",id:f.id}};
+  }
+  var e=erroLigacao(M,a,b); if(e)return {erro:e};
+  var l={id:novoId(M,"l"),origem:a,destino:b,fluxo:"empurrado",estoquePecas:0};
+  M.ligacoes.push(l); return {sel:{tipo:"lig",id:l.id}};
+}
+/* insere um posto sem ligações no meio de uma ligação existente */
+function dividirLigacao(M,ligId,noId){
+  var l=ligPorId(M,ligId),n=noPorId(M,noId);
+  if(!l||!n||n.tipo!=="processo"||saidaDe(M,noId)||entradaDe(M,noId))return false;
+  var destino=l.destino; l.destino=noId;
+  M.ligacoes.push({id:novoId(M,"l"),origem:noId,destino:destino,fluxo:l.fluxo,estoquePecas:0});
+  return true;
+}
+function removerNo(M,id){
+  var e=entradaDe(M,id),s=saidaDe(M,id);
+  if(e&&s){ /* reata os vizinhos */
+    var A=noPorId(M,e.origem),B=noPorId(M,s.destino);
+    if(A.tipo==="fornecedor"&&B.tipo==="cliente")M.ligacoes=M.ligacoes.filter(function(l){return l!==e&&l!==s;});
+    else {e.destino=s.destino;e.estoquePecas+=s.estoquePecas;M.ligacoes=M.ligacoes.filter(function(l){return l!==s;});}
+  } else M.ligacoes=M.ligacoes.filter(function(l){return l!==e&&l!==s;});
+  M.fluxosInfo=M.fluxosInfo.filter(function(f){return f.origem!==id&&f.destino!==id;});
+  M.nos=M.nos.filter(function(n){return n.id!==id;});
+}
+function criarNo(M,tipo,modelo,x,y){
+  var p=posLivre(M,tipo,x,y),no={id:novoId(M,"n"),tipo:tipo,pos:p};
+  if(tipo==="processo"){no.modelo=CAT[modelo]?modelo:"generico";no.dados=dadosProcesso(null,no.modelo);}
+  if(tipo==="pcp")no.dados={nome:"PCP",descricao:"Controle da produção"};
+  M.nos.push(no); return no;
+}
+/* valida e saneia um objeto vindo do armazenamento ou da área de transferência */
+function normalizar(o){
+  if(!o||typeof o!=="object"||!Array.isArray(o.nos))throw new Error("O texto não é um mapa do MF: falta a lista de nós.");
+  var M=mapaVazio(),m=o.mapa||{},c=o.cliente||{},f=o.fornecedor||{},vistos={},unico={};
+  M.exemplo=!!o.exemplo;
+  M.mapa={nome:txt(m.nome,"Mapa sem nome"),familia:txt(m.familia,""),clienteFinal:txt(m.clienteFinal,""),data:txt(m.data,hoje())};
+  M.cliente={demandaDia:num(c.demandaDia,0,0),turnos:num(c.turnos,1,0),tempoDisponivelMin:num(c.tempoDisponivelMin,480,0),freqExpedicao:txt(c.freqExpedicao,"")};
+  M.fornecedor={material:txt(f.material,""),freqEntrega:txt(f.freqEntrega,"")};
+  o.nos.forEach(function(n){
+    if(!n||typeof n!=="object"||!TIPOS[n.tipo])return;
+    var id=String(n.id||""); if(!/^n\d+$/.test(id)||vistos[id])return;
+    if(n.tipo!=="processo"){if(unico[n.tipo])return;unico[n.tipo]=1;}
+    vistos[id]=1;
+    var p=n.pos||{},no={id:id,tipo:n.tipo,pos:{x:Math.round(num(p.x,0)),y:Math.round(num(p.y,0))}},d=n.dados||{};
+    if(n.tipo==="processo"){no.modelo=CAT[n.modelo]?n.modelo:"generico";no.dados=dadosProcesso(d,no.modelo);}
+    if(n.tipo==="pcp")no.dados={nome:txt(d.nome,"PCP"),descricao:txt(d.descricao,"Controle da produção")};
+    M.nos.push(no);
+  });
+  (Array.isArray(o.ligacoes)?o.ligacoes:[]).forEach(function(l){
+    if(!l||erroLigacao(M,String(l.origem),String(l.destino)))return;
+    M.ligacoes.push({id:novoId(M,"l"),origem:String(l.origem),destino:String(l.destino),
+      fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0))});
+  });
+  (Array.isArray(o.fluxosInfo)?o.fluxosInfo:[]).forEach(function(i){
+    if(!i)return; var a=String(i.origem),b=String(i.destino);
+    if(a===b||!noPorId(M,a)||!noPorId(M,b))return;
+    M.fluxosInfo.push({id:novoId(M,"i"),origem:a,destino:b,rotulo:txt(i.rotulo,""),frequencia:txt(i.frequencia,""),tipo:TIPOS_INFO[i.tipo]?i.tipo:"manual"});
+  });
+  return M;
+}
+
+/* =========================================================================
+   2. CÁLCULO  -  indicadores do livro e geometria derivada do modelo
+   ========================================================================= */
+function unit(dx,dy){var l=Math.hypot(dx,dy);return l<1e-6?[1,0]:[dx/l,dy/l];}
+/* normal que aponta para a frente da cena (y crescente) */
+function normalFrente(d){var n=[-d[1],d[0]]; if(n[1]<-1e-6||(Math.abs(n[1])<=1e-6&&n[0]<0))n=[-n[0],-n[1]]; return n;}
+/* distância do centro até a borda da pegada na direção d */
+function ateBorda(pe,d){
+  var tx=d[0]>1e-6?pe[2]/d[0]:d[0]<-1e-6?pe[0]/d[0]:1e9, ty=d[1]>1e-6?pe[3]/d[1]:d[1]<-1e-6?pe[1]/d[1]:1e9;
+  return Math.min(tx,ty);
+}
+/* rota do caminhão entre a fábrica F e o estoque K, em trechos retos */
+function rotaCaminhao(F,K){
+  var dx=K.x-F.x,dy=K.y-F.y,a,b,s;
+  if(Math.abs(dy)>=Math.abs(dx)){
+    s=dy>=0?1:-1; a=[F.x,F.y+s*5.5]; b=[K.x,K.y-s*4];
+    if((b[1]-a[1])*s<.5)return [b,b];
+    return Math.abs(dx)<1.5?[a,b]:[a,[b[0],a[1]],b];
+  }
+  s=dx>=0?1:-1; a=[F.x+s*5.5,F.y]; b=[K.x-s*4,K.y];
+  if((b[0]-a[0])*s<.5)return [b,b];
+  return Math.abs(dy)<1.5?[a,b]:[a,[a[0],b[1]],b];
+}
+function zigue(a,b){
+  var d=unit(b[0]-a[0],b[1]-a[1]),n=[-d[1],d[0]],mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+  return [a,[mx-d[0]*1.3,my-d[1]*1.3],[mx-d[0]*.4+n[0]*1.6,my-d[1]*.4+n[1]*1.6],[mx+d[0]*.4-n[0]*1.6,my+d[1]*.4-n[1]*1.6],[mx+d[0]*1.3,my+d[1]*1.3],b];
+}
+
+function calcular(M){
+  var C={},by={},sai={},ent={},i,dem=M.cliente.demandaDia;
+  M.nos.forEach(function(n){by[n.id]=n;});
+  M.ligacoes.forEach(function(l){sai[l.origem]=l;ent[l.destino]=l;});
+  C.by=by;C.sai=sai;C.ent=ent;
+  C.dispDia=M.cliente.turnos*M.cliente.tempoDisponivelMin*60;         /* s/dia */
+  C.takt=dem>0?C.dispDia/dem:0;                                       /* takt = tempo disponível / demanda */
+
+  /* cadeias (o fluxo é linear, então cada componente é uma fila) */
+  var cadeias=[];
+  M.nos.forEach(function(n){
+    if(n.tipo==="pcp"||ent[n.id]||!sai[n.id])return;
+    var ns=[n],ls=[],c=n,g=0; while(sai[c.id]&&g++<500){var l=sai[c.id];ls.push(l);c=by[l.destino];ns.push(c);}
+    cadeias.push({nos:ns,ligs:ls});
+  });
+  var pri=null; cadeias.forEach(function(c){ if(c.nos[0].tipo==="fornecedor")pri=c; });
+  if(!pri)cadeias.forEach(function(c){ if(!pri||c.ligs.length>pri.ligs.length)pri=c; });
+  C.cadeia=pri;
+  C.completo=!!pri&&pri.nos[0].tipo==="fornecedor"&&pri.nos[pri.nos.length-1].tipo==="cliente";
+
+  /* cor da peça ao longo do fluxo */
+  C.corIn={};C.corOut={};var corLig={};
+  cadeias.forEach(function(c){var cor=CRU;
+    c.nos.forEach(function(n,k){ C.corIn[n.id]=cor; if(n.tipo==="processo"&&CAT[n.modelo].saida)cor=CAT[n.modelo].saida; C.corOut[n.id]=cor; if(c.ligs[k])corLig[c.ligs[k].id]=cor; });});
+  M.nos.forEach(function(n){ if(!C.corIn[n.id]){C.corIn[n.id]=CRU;C.corOut[n.id]=(n.tipo==="processo"&&CAT[n.modelo].saida)||CRU;} });
+
+  /* gargalos: T/C acima do takt */
+  C.gargalo={};C.gargalos=[];
+  M.nos.forEach(function(n){ if(n.tipo==="processo"&&C.takt>0&&n.dados.tc>C.takt+1e-9){C.gargalo[n.id]=true;C.gargalos.push(n);} });
+
+  /* geometria das ligações: o estoque pertence à ligação */
+  var bb=[1e9,1e9,-1e9,-1e9];
+  function inc(x,y){ if(x<bb[0])bb[0]=x; if(y<bb[1])bb[1]=y; if(x>bb[2])bb[2]=x; if(y>bb[3])bb[3]=y; }
+  M.nos.forEach(function(n){var r=retNo(n);inc(r[0],r[1]);inc(r[2],r[3]);});
+  C.lig={};
+  M.ligacoes.forEach(function(l){
+    var A=by[l.origem],B=by[l.destino],g={id:l.id,cor:corLig[l.id]||CRU,seta:null,rota:null},u,Q,v,d;
+    g.dias=dem>0?l.estoquePecas/dem:0;                                /* dias = peças / demanda diária */
+    g.nCx=l.estoquePecas>0?Math.max(1,Math.min(20,Math.round((dem>0?g.dias:1)*2))):0;
+    g.topo=.2+Math.ceil(g.nCx/4)*.95;
+    if(A.tipo==="fornecedor"){
+      v=sai[B.id];Q=v&&by[v.destino];
+      u=Q&&Q.tipo==="processo"?unit(B.pos.x-Q.pos.x,B.pos.y-Q.pos.y):[-1,0];
+      g.k={x:B.pos.x+u[0]*6,y:B.pos.y+u[1]*6}; g.n=normalFrente(u);
+      g.rota=rotaCaminhao(A.pos,g.k); g.corCam="#2f6fb5"; g.fase=0; g.periodo=16;
+    } else if(B.tipo==="cliente"){
+      v=ent[A.id];Q=v&&by[v.origem];
+      u=Q&&Q.tipo==="processo"?unit(A.pos.x-Q.pos.x,A.pos.y-Q.pos.y):[1,0];
+      g.k={x:A.pos.x+u[0]*6,y:A.pos.y+u[1]*6}; g.n=normalFrente(u);
+      g.rota=rotaCaminhao(B.pos,g.k).slice().reverse(); g.corCam="#d9542b"; g.fase=.45; g.periodo=14;
+    } else {
+      d=unit(B.pos.x-A.pos.x,B.pos.y-A.pos.y); g.n=normalFrente(d);
+      g.k={x:(A.pos.x+B.pos.x)/2,y:(A.pos.y+B.pos.y)/2};
+      var ta=ateBorda(TIPOS[A.tipo].pe,d)+.4,tb=ateBorda(TIPOS[B.tipo].pe,[-d[0],-d[1]])+.4,
+          dist=Math.hypot(B.pos.x-A.pos.x,B.pos.y-A.pos.y);
+      if(dist-ta-tb>1.6)g.seta={a:[A.pos.x+d[0]*ta+g.n[0]*4.6,A.pos.y+d[1]*ta+g.n[1]*4.6],
+        b:[B.pos.x-d[0]*tb+g.n[0]*4.6,B.pos.y-d[1]*tb+g.n[1]*4.6],d:d,n:g.n};
+    }
+    inc(g.k.x-1.3,g.k.y-1.3);inc(g.k.x+1.3,g.k.y+1.3);
+    if(g.seta){inc(g.seta.a[0],g.seta.a[1]+1);inc(g.seta.b[0],g.seta.b[1]+1);}
+    C.lig[l.id]=g;
+  });
+  if(bb[0]>bb[2])bb=[0,0,44,24];
+  C.bb=bb;
+
+  /* área de produção (corredor com faixa de segurança) */
+  var ar=null;
+  function incA(x,y){ if(!ar)ar=[x,y,x,y]; if(x<ar[0])ar[0]=x; if(y<ar[1])ar[1]=y; if(x>ar[2])ar[2]=x; if(y>ar[3])ar[3]=y; }
+  M.nos.forEach(function(n){ if(n.tipo==="processo")incA(n.pos.x,n.pos.y); });
+  if(ar){ M.ligacoes.forEach(function(l){var k=C.lig[l.id].k;incA(k.x,k.y);}); ar=[ar[0]-4.5,ar[1]-4.1,ar[2]+4.5,ar[3]+6.5]; }
+  C.area=ar;
+
+  /* fluxos de informação */
+  C.info={};var pares={};
+  M.fluxosInfo.forEach(function(f){var k=f.origem<f.destino?f.origem+"|"+f.destino:f.destino+"|"+f.origem;(pares[k]=pares[k]||[]).push(f);});
+  Object.keys(pares).forEach(function(k){
+    var lst=pares[k],ids=k.split("|"),A=by[ids[0]],B=by[ids[1]],d0=unit(B.pos.x-A.pos.x,B.pos.y-A.pos.y),n0=[-d0[1],d0[0]];
+    lst.forEach(function(f,j){
+      var O=by[f.origem],D=by[f.destino],dd=f.origem===ids[0]?d0:[-d0[0],-d0[1]],off=(j-(lst.length-1)/2)*2.4,
+          tO=ateBorda(TIPOS[O.tipo].pe,dd)+.5,tD=ateBorda(TIPOS[D.tipo].pe,[-dd[0],-dd[1]])+.7,
+          a=[O.pos.x+dd[0]*tO+n0[0]*off,O.pos.y+dd[1]*tO+n0[1]*off],b=[D.pos.x-dd[0]*tD+n0[0]*off,D.pos.y-dd[1]*tD+n0[1]*off],
+          len=(b[0]-a[0])*dd[0]+(b[1]-a[1])*dd[1],fr=lst.length>1?.3+.4*j/(lst.length-1):.5,g={id:f.id,pts:null};
+      if(len>1.5){ g.pts=f.tipo==="eletronica"&&len>5?zigue(a,b):[a,b]; g.rot=[a[0]+(b[0]-a[0])*fr,a[1]+(b[1]-a[1])*fr]; }
+      C.info[f.id]=g;
+    });
+  });
+  /* um rótulo por grupo de setas iguais saindo da mesma origem */
+  C.rotInfo=[];var grupos={};
+  M.fluxosInfo.forEach(function(f){var g=C.info[f.id]; if(!g.pts)return;
+    var t=f.rotulo+(f.rotulo&&f.frequencia?" ":"")+f.frequencia; if(!t)return;
+    var k=f.origem+"|"+t,o=grupos[k]; if(!o){o=grupos[k]={t:t,x:0,y:0,n:0};C.rotInfo.push(o);} o.x+=g.rot[0];o.y+=g.rot[1];o.n++;});
+  C.rotInfo.forEach(function(o){o.x/=o.n;o.y/=o.n;});
+
+  /* linha do tempo: segue a ordem das ligações, em faixa própria na frente do mapa */
+  var segs=[],lead=0,tav=0;
+  if(pri){
+    if(pri.nos[0].tipo==="processo")segs.push({t:"p",no:pri.nos[0]});
+    pri.ligs.forEach(function(l,k){ segs.push({t:"e",lig:l}); if(pri.nos[k+1].tipo==="processo")segs.push({t:"p",no:pri.nos[k+1]}); });
+  }
+  var cheio=0; segs.forEach(function(s){cheio+=s.t==="e"?6:7;});
+  var esc=cheio>0?Math.max(.55,Math.min(1,Math.max(bb[2]-bb[0],45)/cheio)):1, x=(bb[0]+bb[2])/2-cheio*esc/2;
+  segs.forEach(function(s){
+    s.w=(s.t==="e"?6:7)*esc; s.x=x; x+=s.w;
+    if(s.t==="e"){s.dias=C.lig[s.lig.id].dias;lead+=s.dias;} else {s.tc=s.no.dados.tc;tav+=s.tc;}
+  });
+  C.tl={y:bb[3]+5.6,segs:segs,ini:(bb[0]+bb[2])/2-cheio*esc/2,fim:x};
+  C.lead=lead;                                                        /* lead time = soma dos dias de estoque */
+  C.tav=tav;                                                          /* agregação = soma dos T/C */
+  C.eff=lead>0&&C.dispDia>0?tav/(lead*C.dispDia)*100:0;               /* eficiência = agregação / lead time */
+
+  /* piso */
+  C.piso=[Math.floor(Math.min(bb[0],C.tl.ini)-4),Math.floor(bb[1]-2),Math.ceil(Math.max(bb[2],segs.length?C.tl.fim+8.5:bb[2])+1),Math.ceil(C.tl.y+5.4)];
+  return C;
+}
+
+/* =========================================================================
+   3. RENDERIZAÇÃO  -  desenha sempre a partir do modelo e do cálculo
+   ========================================================================= */
+var cv=document.getElementById("cv"),ctx=cv.getContext("2d"),stage=document.getElementById("stage");
+var W=1000,H=640,dpr=1,S=10,OX=0,OY=0,zoom=1,panX=0,panY=0;
+var vis={cx:27,cy:11,w:100,h:53};
+/* axonométrica girada 30 graus */
+var AX=.866,AY=.5,BX=.25,BY=.433,ZS=.9,DET=AX*BY+AY*BX;
+function resize(){
+  var r=stage.getBoundingClientRect();
+  W=Math.max(300,r.width);H=Math.max(300,r.height);
+  dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+}
+function cam(){S=Math.min(W/vis.w,H/vis.h)*zoom;OX=W/2-vis.cx*S+panX;OY=H/2-vis.cy*S+panY;}
+function P(x,y,z){return [OX+(x*AX-y*AY)*S,OY+(x*BX+y*BY)*S-(z||0)*ZS*S];}
+/* inversa da projeção: ponto da tela -> plano do chão (z=0) */
+function chao(px,py){var u=(px-OX)/S,v=(py-OY)/S;return [(u*BY+v*AY)/DET,(v*AX-u*BX)/DET];}
+function lerp(a,b,u){return a+(b-a)*u;}
+function ease(u){return u*u*(3-2*u);}
+function rnd(n){var x=Math.sin(n*127.1)*43758.5453;return x-Math.floor(x);}
+function nf(v,d){return v.toFixed(d).replace(".",",");}
+function n1(v){return String(Math.round(v*10)/10).replace(".",",");}
+function mil(v){return Math.round(v).toLocaleString("pt-BR");}
+
+var shadeCache={};
+function shade(hex,f){
+  var k=hex+f; if(shadeCache[k])return shadeCache[k];
+  var n=parseInt(hex.slice(1),16),r=n>>16,g=(n>>8)&255,b=n&255;
+  return shadeCache[k]="rgb("+Math.round(r*f)+","+Math.round(g*f)+","+Math.round(b*f)+")";
+}
+function mixHex(a,b,u){
+  var x=parseInt(a.slice(1),16),y=parseInt(b.slice(1),16);
+  var r=Math.round(lerp(x>>16,y>>16,u)),g=Math.round(lerp((x>>8)&255,(y>>8)&255,u)),bl=Math.round(lerp(x&255,y&255,u));
+  return "#"+((1<<24)+(r<<16)+(g<<8)+bl).toString(16).slice(1);
+}
+
+function poly(pts,fill,stroke,lw){
+  ctx.beginPath();
+  for(var i=0;i<pts.length;i++){ if(i)ctx.lineTo(pts[i][0],pts[i][1]); else ctx.moveTo(pts[i][0],pts[i][1]); }
+  ctx.closePath();
+  if(fill){ctx.fillStyle=fill;ctx.fill();}
+  if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}
+}
+function fpoly(pts,fill,stroke,lw){poly(pts.map(function(p){return P(p[0],p[1],0);}),fill,stroke,lw);}
+function fret(r,fill,stroke,lw){fpoly([[r[0],r[1]],[r[2],r[1]],[r[2],r[3]],[r[0],r[3]]],fill,stroke,lw);}
+function drawBox(b){
+  var x=b.x,y=b.y,z=b.z,x1=b.x1,y1=b.y1,z1=b.z1,c=b.c;
+  ctx.globalAlpha=b.a;
+  var e="rgba(10,18,30,.22)";
+  poly([P(x,y1,z1),P(x1,y1,z1),P(x1,y1,z),P(x,y1,z)],shade(c,.84),e,.6);
+  poly([P(x1,y,z1),P(x1,y1,z1),P(x1,y1,z),P(x1,y,z)],shade(c,.66),e,.6);
+  poly([P(x,y,z1),P(x1,y,z1),P(x1,y1,z1),P(x,y1,z1)],c,e,.6);
+  ctx.globalAlpha=1;
+}
+/* ordenação topológica de profundidade */
+function sortDraw(bs){
+  var n=bs.length,i,j,A,B,e=1e-6;
+  for(i=0;i<n;i++){A=bs[i];
+    A.x1=A.x+A.w;A.y1=A.y+A.d;A.z1=A.z+A.h;
+    A.l=A.x*AX-A.y1*AY;A.r=A.x1*AX-A.y*AY;A.t=A.x*BX+A.y*BY-A.z1*ZS;A.b=A.x1*BX+A.y1*BY-A.z*ZS;A.bh=[];A.v=0;}
+  for(i=0;i<n;i++){A=bs[i];
+    for(j=i+1;j<n;j++){B=bs[j];
+      if(A.l>=B.r||B.l>=A.r||A.t>=B.b||B.t>=A.b)continue;
+      var ab=A.x1<=B.x+e||A.y1<=B.y+e||A.z1<=B.z+e,ba=B.x1<=A.x+e||B.y1<=A.y+e||B.z1<=A.z+e;
+      if(ab&&!ba)B.bh.push(A); else if(ba&&!ab)A.bh.push(B);
+    }}
+  function visit(b){ if(b.v)return; b.v=1; for(var k=0;k<b.bh.length;k++)visit(b.bh[k]); drawBox(b); }
+  for(i=0;i<n;i++)visit(bs[i]);
+}
+function rr(x,y,w,h,r){ctx.beginPath(); if(ctx.roundRect)ctx.roundRect(x,y,w,h,r); else ctx.rect(x,y,w,h);}
+function halo(t,x,y,col){ctx.lineJoin="round";ctx.strokeStyle="rgba(255,255,255,.92)";ctx.lineWidth=Math.max(2.5,S*.28);ctx.strokeText(t,x,y);ctx.fillStyle=col;ctx.fillText(t,x,y);}
+function fontD(px,w){return (w||700)+" "+px+"px \"Barlow Condensed\",\"Arial Narrow\",sans-serif";}
+function fontB(px,w){return (w||500)+" "+px+"px Barlow,\"Segoe UI\",sans-serif";}
+
+/* linha no chão com pulsos (fluxo de informação) */
+function floorPath(pts,col,alpha,dash,t,speed,head,larg){
+  if(alpha<=.01)return;
+  var sp=pts.map(function(p){return P(p[0],p[1],0);}),i;
+  ctx.globalAlpha=alpha;ctx.strokeStyle=col;ctx.lineWidth=larg||Math.max(1.5,S*.16);ctx.lineJoin="round";
+  ctx.setLineDash(dash?[S*.5,S*.35]:[]);
+  ctx.beginPath(); for(i=0;i<sp.length;i++){ if(i)ctx.lineTo(sp[i][0],sp[i][1]); else ctx.moveTo(sp[i][0],sp[i][1]); } ctx.stroke();
+  ctx.setLineDash([]);
+  if(head){
+    var a=sp[sp.length-2],b=sp[sp.length-1],an=Math.atan2(b[1]-a[1],b[0]-a[0]),L=S*.9;
+    poly([[b[0],b[1]],[b[0]-L*Math.cos(an-.42),b[1]-L*Math.sin(an-.42)],[b[0]-L*Math.cos(an+.42),b[1]-L*Math.sin(an+.42)]],col);
+  }
+  if(speed){
+    var len=[0]; for(i=1;i<sp.length;i++)len.push(len[i-1]+Math.hypot(sp[i][0]-sp[i-1][0],sp[i][1]-sp[i-1][1]));
+    var tot=len[len.length-1];
+    for(var k=0;k<3;k++){
+      var d=((t*speed+k/3)%1)*tot;
+      for(i=1;i<sp.length;i++) if(d<=len[i]){
+        var u=(d-len[i-1])/(len[i]-len[i-1]||1),x=lerp(sp[i-1][0],sp[i][0],u),y=lerp(sp[i-1][1],sp[i][1],u);
+        ctx.beginPath();ctx.arc(x,y,S*.26,0,7);ctx.fillStyle="#fff";ctx.fill();ctx.lineWidth=Math.max(1.2,S*.12);ctx.stroke();break;
+      }
+    }
+  }
+  ctx.globalAlpha=1;
+}
+/* faixa reta no chão entre dois pontos, com meia largura hw e folga nas pontas */
+function faixa(a,b,hw,folga,fill){
+  var d=unit(b[0]-a[0],b[1]-a[1]); if(Math.hypot(b[0]-a[0],b[1]-a[1])<1e-6)d=[0,1];
+  var n=[-d[1],d[0]],a0=[a[0]-d[0]*folga,a[1]-d[1]*folga],b0=[b[0]+d[0]*folga,b[1]+d[1]*folga];
+  fpoly([[a0[0]+n[0]*hw,a0[1]+n[1]*hw],[b0[0]+n[0]*hw,b0[1]+n[1]*hw],[b0[0]-n[0]*hw,b0[1]-n[1]*hw],[a0[0]-n[0]*hw,a0[1]-n[1]*hw]],fill);
+}
+/* seta listrada de fluxo empurrado, em qualquer direção */
+function setaEmpurrada(s,t){
+  var d=s.d,n=s.n,len=Math.hypot(s.b[0]-s.a[0],s.b[1]-s.a[1]),k=0,u;
+  function q(u0,u1,hw){return [[s.a[0]+d[0]*u0+n[0]*hw,s.a[1]+d[1]*u0+n[1]*hw],[s.a[0]+d[0]*u1+n[0]*hw,s.a[1]+d[1]*u1+n[1]*hw],
+    [s.a[0]+d[0]*u1-n[0]*hw,s.a[1]+d[1]*u1-n[1]*hw],[s.a[0]+d[0]*u0-n[0]*hw,s.a[1]+d[1]*u0-n[1]*hw]];}
+  for(u=0;u<len-1.2-1e-6;u+=.8,k++) fpoly(q(u,Math.min(u+.8,len-1.2),.4),((k-Math.floor(t*3))%2+2)%2?INK:"#ffffff","rgba(24,33,45,.5)",.5);
+  var h=len-1.2;
+  fpoly([[s.a[0]+d[0]*h+n[0]*.8,s.a[1]+d[1]*h+n[1]*.8],[s.b[0],s.b[1]],[s.a[0]+d[0]*h-n[0]*.8,s.a[1]+d[1]*h-n[1]*.8]],INK);
+}
+
+/* estado de interface lido pela renderização (preenchido pelo editor) */
+var ui={edit:true,sel:null,hover:null};
+
+/* ---- construção da cena em caixas ---- */
+function construir(M,C,t){
+  var bs=[],fx=[],bl=[];
+  function B(x,y,z,w,d,h,c,a){bs.push({x:x,y:y,z:z,w:w,d:d,h:h,c:c,a:a==null?1:a});}
+  function operador(x,y,z0,camisa,acena,ph){
+    var k=1.3,w1=acena?(.5+.5*Math.sin(t*9+ph)):0,w2=acena?(.5+.5*Math.sin(t*9+ph+2.4)):0;
+    B(x-.3*k,y-.15*k,z0,.26*k,.3*k,.6*k,"#2f3b4d");B(x+.04*k,y-.15*k,z0,.26*k,.3*k,.6*k,"#2f3b4d");
+    B(x-.34*k,y-.2*k,z0+.6*k,.68*k,.4*k,.7*k,camisa);
+    B(x-.56*k,y-.14*k,z0+(.62+w1*.32)*k,.2*k,.28*k,.62*k,camisa);
+    B(x+.36*k,y-.14*k,z0+(.62+w2*.32)*k,.2*k,.28*k,.62*k,camisa);
+    B(x-.24*k,y-.24*k,z0+1.3*k,.48*k,.48*k,.45*k,"#e3b58c");
+    B(x-.29*k,y-.29*k,z0+1.75*k,.58*k,.58*k,.18*k,"#f2b705");
+    var fy=y+.24*k,ez=z0+1.5*k;
+    [-.15,.06].forEach(function(o){fx.push({k:"q",c:INK,p:[[x+o*k,fy,ez+.1*k],[x+(o+.09)*k,fy,ez+.1*k],[x+(o+.09)*k,fy,ez],[x+o*k,fy,ez]]});});
+  }
+  function fabrica(no,col,roof){
+    var x0=no.pos.x-3,YB=no.pos.y-3;
+    B(x0,YB,0,6,6,3,col);
+    B(x0,YB,3,1.2,6,.9,roof);B(x0+2,YB,3,1.2,6,.9,roof);
+    B(x0+4.6,YB+.6,3,.8,.8,2.8,"#a5523f");
+    B(x0+2,YB+6,0,2,.12,2.1,"#3b4654");
+    B(x0+.5,YB+6,1.5,1,.1,.8,"#8fd3f4");B(x0+4.5,YB+6,1.5,1,.1,.8,"#8fd3f4");
+    for(var i=0;i<5;i++){var a=(t*.35+i/5)%1;fx.push({k:"d",x:x0+5+a*.8,y:YB+1,z:5.9+a*3.2,r:.35+a*.7,c:"#ffffff",a:(1-a)*.55});}
+  }
+  function predioPcp(no){
+    var x0=no.pos.x-4,YB=no.pos.y-3,i;
+    B(x0,YB,0,8,6,2.6,"#eef2f6");B(x0-.3,YB-.3,2.6,8.6,6.6,.35,"#2c4a6e");
+    for(i=0;i<4;i++){B(x0+.8+i*1.8,YB+6,1,1.2,.1,1,"#8fd3f4"); if(i<3)B(x0+8,YB+.9+i*1.8,1,.1,1.2,1,"#8fd3f4");}
+    B(x0+6.6,YB+1,2.95,.16,.16,2.2,"#55606e");B(x0+6.5,YB+.9,5.15,.36,.36,.3,Math.sin(t*5)>0?"#ff4636":"#7a2a22");
+  }
+  function noCaminho(pts,u){
+    var len=[0],i; for(i=1;i<pts.length;i++)len.push(len[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
+    var tot=len[len.length-1],d=u*tot;
+    if(tot<1e-6)return {x:pts[0][0],y:pts[0][1],dx:0,dy:1};
+    for(i=1;i<pts.length;i++) if(d<=len[i]+1e-9&&len[i]>len[i-1]){
+      var v=(d-len[i-1])/(len[i]-len[i-1]);
+      return {x:lerp(pts[i-1][0],pts[i][0],v),y:lerp(pts[i-1][1],pts[i][1],v),dx:pts[i][0]-pts[i-1][0],dy:pts[i][1]-pts[i-1][1]};
+    }
+    var q=pts[pts.length-1],p=pts[pts.length-2];return {x:q[0],y:q[1],dx:q[0]-p[0],dy:q[1]-p[1]};
+  }
+  function caminhao(pts,u,cor){
+    var o=noCaminho(pts,u),ay=Math.abs(o.dy)>=Math.abs(o.dx),dir=(ay?o.dy:o.dx)>=0?1:-1;
+    function T(s0,sl,c0,cl,z,h,col){ if(dir<0)s0=-(s0+sl); if(ay)B(o.x+c0,o.y+s0,z,cl,sl,h,col); else B(o.x+s0,o.y+c0,z,sl,cl,h,col); }
+    T(-2.15,3,-1,2,.55,1.9,"#f4f6f8");T(.9,1.25,-1,2,.55,1.35,cor);
+    [-1.8,1.05].forEach(function(s){T(s,.75,-1.08,.3,0,.55,"#222b36");T(s,.75,.78,.3,0,.55,"#222b36");});
+  }
+  function viagem(ph){var u=ph<.3?ph/.3:ph<.5?1:ph<.8?1-(ph-.5)/.3:0;return ease(u);}
+
+  /* estações: cada função desenha em coordenadas relativas ao posto */
+  var EST={
+    laser:function(R,p,c,s){
+      R(-2,-1.3,.3,4,2.6,1,"#55606e");R(-3,-3.3,.3,1.1,1.1,2.2,c);
+      var gx=-1.7+2.6*(s.act?s.a:s.ph>=.78?1-(s.ph-.78)/.22:0),hy=-.6+.9*(.5+.5*Math.sin(s.a*38));
+      R(gx,-2,.3,.35,.35,2.9,"#3b4654");R(gx,-2,3.2,.35,3,.35,c);R(gx,hy,2.6,.35,.35,.6,"#3b4654");
+      if(s.act){R(gx+.12,hy+.12,1.66,.11,.11,.94,"#ff4636");fx.push({k:"d",x:p.x+gx+.17,y:p.y+hy+.17,z:1.68,r:.3,c:"#ffb38a",a:.8});
+        for(var q=0;q<4;q++)fx.push({k:"d",x:p.x+gx+.17+(rnd(Math.floor(t*24)+q)-.5),y:p.y+hy+.17+(rnd(Math.floor(t*24)+q+9)-.5),z:1.8+rnd(Math.floor(t*24)+q+5)*.6,r:.09,c:"#ffe08a",a:1});}
+    },
+    dobra:function(R,p,c,s){
+      var pr=s.act?Math.abs(Math.sin(s.a*Math.PI*3)):0;
+      R(-2.1,-.9,.3,.5,1.8,3.6,c);R(1.6,-.9,.3,.5,1.8,3.6,c);
+      R(-1.6,-.7,.3,3.2,1.4,1.2,"#55606e");R(-1.6,-.7,1.9+.9*(1-pr),3.2,1.4,1,"#3b4654");
+      R(-2.1,-.9,3.9,4.2,1.8,.6,c);
+    },
+    solda:function(R,p,c,s){
+      R(-1.6,-1,.3,3.2,2,.9,"#55606e");R(-.5,-3.1,.3,1,1,.9,c);
+      R(-.2,-2.8,1.2,.4,.4,2,c);R(-.2,-2.8,3.2,.4,2.9,.4,c);
+      var tz=s.act?1.75:2.4;R(-.15,-.25,tz,.3,.3,3.2-tz,"#3b4654");
+      if(s.act){var fl=Math.floor(t*30);fx.push({k:"d",x:p.x,y:p.y,z:1.65,r:.55,c:"#bfe6ff",a:.35+.3*rnd(fl)});fx.push({k:"d",x:p.x,y:p.y,z:1.65,r:.2,c:"#ffffff",a:1});
+        for(var q=0;q<7;q++)fx.push({k:"d",x:p.x+(rnd(fl+q)-.5)*1.6,y:p.y+(rnd(fl+q+11)-.5)*1.6,z:1.6+rnd(fl+q+3)*1.3,r:.08,c:"#ffd23f",a:1});}
+    },
+    pintura:function(R,p,c,s){
+      R(-2.6,-2.9,.3,5.2,.3,3.6,"#cfe5e1");R(-2.6,-2.6,.3,.3,3.6,3.6,"#cfe5e1");R(-2.6,-2.9,3.9,5.2,.3,.3,c);
+      R(-.12,-.12,.3,.24,.24,1.2,"#55606e");R(1.2,-2.1,.3,.7,.7,1.8,c);R(.6,-1.9,1.7,.6,.3,.3,"#3b4654");
+      if(s.act)for(var q=0;q<10;q++){var u=((t*2.2+q/10)%1);fx.push({k:"d",x:p.x+lerp(.6,0,u)+(rnd(q+Math.floor(t*12))-.5)*u*.9,y:p.y+lerp(-1.7,0,u),z:lerp(1.85,1.7,u)+(rnd(q+4+Math.floor(t*12))-.5)*u*.9,r:.1+u*.16,c:CAT.pintura.saida,a:.55*(1-u*.5)});}
+    },
+    montagem:function(R,p,c,s){
+      R(-2,-.9,.3,4,1.8,1,"#b98a55");R(-1.8,-.8,1.3,.6,.5,.4,"#2f6fb5");R(1.2,-.8,1.3,.6,.5,.4,"#d23b2a");
+    },
+    usinagem:function(R,p,c,s){
+      R(-2,-1.3,.3,4,2.6,1.1,"#55606e");R(-1.9,-3,.3,3.8,1.2,3.7,c);R(-.45,-1.8,2.7,.9,2.2,.8,c);
+      var tz=s.act?1.82:2.3;R(-.15,-.15,tz,.3,.3,2.7-tz,"#3b4654");
+      if(s.act){var fl=Math.floor(t*26);for(var q=0;q<5;q++)fx.push({k:"d",x:p.x+(rnd(fl+q)-.5)*1.2,y:p.y+(rnd(fl+q+7)-.5)*1.2,z:1.75+rnd(fl+q+2)*.5,r:.08,c:"#dfe6ee",a:1});}
+    },
+    inspecao:function(R,p,c,s){
+      R(-1.6,-.9,.3,3.2,1.8,1,"#eef2f6");R(-.2,-2.5,.3,.4,.4,3,"#55606e");R(-.2,-2.5,3.3,.4,2.8,.4,c);
+      R(-.3,-.3,2.7,.6,.6,.6,"#3b4654");R(1.5,-2.6,.3,1.3,.5,2.4,"#55606e");R(1.6,-2.1,1.5,1.1,.1,.9,s.act?"#8fd3f4":"#3b4654");
+      if(s.act)fx.push({k:"d",x:p.x,y:p.y,z:1.7,r:.4+.25*Math.sin(t*12),c:"#7be0a0",a:.5});
+    },
+    generico:function(R,p,c,s){
+      R(-2,-1.2,.3,4,2.4,1,"#55606e");R(-2,-2.7,.3,4,1.3,2.8,c);
+      R(1.4,-2.3,3.1,.35,.35,.4,s.act?"#39c46f":"#3b4654");
+    }
+  };
+  var VAGAS1=[[0,0]],VAGAS=[[0,-.7],[0,1.6],[0,2.8],[0,-1.8]];
+
+  M.nos.forEach(function(no,idx){
+    var p=no.pos;
+    if(no.tipo==="fornecedor"){fabrica(no,"#cdd5dd","#8795a5");
+      bl.push({k:"card",x:p.x,y:p.y,z:7.6,t:"FORNECEDOR",c:"#55606e",one:[M.fornecedor.material,M.fornecedor.freqEntrega].filter(Boolean).join(", ")||"Fornecedor"});return;}
+    if(no.tipo==="cliente"){fabrica(no,"#d9cfc0","#a08f76");
+      bl.push({k:"card",x:p.x,y:p.y,z:7.6,t:"CLIENTE",c:"#55606e",one:[mil(M.cliente.demandaDia)+" pç/dia",M.cliente.freqExpedicao].filter(Boolean).join(", ")});return;}
+    if(no.tipo==="pcp"){predioPcp(no);
+      bl.push({k:"card",x:p.x,y:p.y,z:6.6,t:no.dados.nome.toUpperCase(),c:"#2c4a6e",one:no.dados.descricao||"Controle da produção"});return;}
+
+    var cat=CAT[no.modelo],c=cat.cor,d=no.dados,T=Math.max(d.tc,4)/14,ph=(t/T+idx*.37)%1;
+    var act=ph>.22&&ph<.78,a=act?(ph-.22)/.56:0,tz=cat.tz;
+    function R(dx,dy,z,w,dd,h,col){B(p.x+dx,p.y+dy,z,w,dd,h,col);}
+    R(-3.2,-3.7,0,6.6,7,.3,mixHex(c,"#ffffff",.72));
+    /* peça: sai do estoque de entrada, é processada e segue para o estoque de saída */
+    var le=C.ent[no.id]&&C.lig[C.ent[no.id].id],ls=C.sai[no.id]&&C.lig[C.sai[no.id].id],ci=C.corIn[no.id],co=C.corOut[no.id],u,s,g=null,x,y,z;
+    var pc=ph<=.22?ci:ph>=.78?co:(ci===co?ci:mixHex(ci,co,Math.round(a*12)/12));
+    if(ph<=.22){g=le;u=ph/.22; if(g){s=Math.sin(Math.PI*u);x=lerp(g.k.x,p.x,u)+g.n[0]*3.2*s;y=lerp(g.k.y,p.y,u)+g.n[1]*3.2*s;z=lerp(g.topo,tz,u)+2*s;}}
+    else if(ph<.78){g=1;x=p.x;y=p.y;z=tz;}
+    else {g=ls;u=(ph-.78)/.22; if(g){s=Math.sin(Math.PI*u);x=lerp(p.x,g.k.x,u)+g.n[0]*3.2*s;y=lerp(p.y,g.k.y,u)+g.n[1]*3.2*s;z=lerp(tz,g.topo,u)+2*s;}}
+    if(g)B(x-.45,y-.45,z,.9,.9,.35,pc);
+    EST[no.modelo](R,p,c,{ph:ph,act:act,a:a});
+    var nOp=Math.max(0,Math.min(4,d.op)),vg=nOp===1?VAGAS1:VAGAS;
+    for(var q=0;q<nOp;q++)operador(p.x+cat.wx,p.y+vg[q][1],.3,c,cat.acena&&act,q*1.5);
+
+    var gar=!!C.gargalo[no.id],grid=[["T/C",n1(d.tc)+" s",gar],["T/R",n1(d.tr)+" min"],["Disp",n1(d.disp)+"%"],["Op",String(d.op)],
+      ["T. disp",mil(d.tempoDisp)+" s"],["TPT",d.lote||"—"]];
+    if(d.refugo!=null&&d.refugo>0)grid.push(["Refugo",n1(d.refugo)+"%"]);
+    bl.push({k:"card",x:p.x,y:p.y-2.8,z:5.7,t:d.nome.toUpperCase(),c:c,grid:grid});
+    if(gar)bl.push({k:"burst",x:p.x,y:p.y-2.8,z:5.7,nr:Math.ceil(grid.length/2),txt:"T/C "+n1(d.tc)+" s > takt "+n1(C.takt)+" s"});
+  });
+
+  /* estoques e caminhões, um por ligação */
+  var somaSeta=[0,0,0];
+  M.ligacoes.forEach(function(l){
+    var g=C.lig[l.id],k=g.k;
+    B(k.x-1.2,k.y-1.2,0,2.4,2.4,.2,"#b98a55");
+    for(var q=0;q<g.nCx;q++)B(k.x-1.06+(q%2)*1.08,k.y-1.06+((q>>1)%2)*1.08,.2+(q>>2)*.95,1,1,.9,g.cor);
+    bl.push({k:"tri",x:k.x,y:k.y,z:g.topo+1,q:l.estoquePecas,d:g.dias,sem:M.cliente.demandaDia<=0});
+    if(g.rota)caminhao(g.rota,viagem((t/g.periodo+g.fase)%1),g.corCam);
+    if(g.seta){somaSeta[0]+=(g.seta.a[0]+g.seta.b[0])/2;somaSeta[1]+=(g.seta.a[1]+g.seta.b[1])/2;somaSeta[2]++;}
+  });
+  if(somaSeta[2])bl.push({k:"pill",x:somaSeta[0]/somaSeta[2],y:somaSeta[1]/somaSeta[2]+2,z:.2,txt:"Fluxo empurrado",c:INK});
+
+  /* linha do tempo em degraus */
+  var tl=C.tl;
+  tl.segs.forEach(function(sg){
+    if(sg.t==="e"){B(sg.x,tl.y,0,sg.w,2,.35+.32*Math.min(sg.dias,18),"#d9685c");
+      bl.push({k:"txt",x:sg.x+sg.w/2,y:tl.y+3.3,z:0,txt:M.cliente.demandaDia>0?nf(sg.dias,1)+" d":"— d",c:"#b3261e"});}
+    else {B(sg.x,tl.y,0,sg.w,2,.3,"#2f9e6e");
+      bl.push({k:"txt",x:sg.x+sg.w/2,y:tl.y+3.3,z:0,txt:n1(sg.tc)+" s",c:"#12704a",sub:sg.no.dados.nome.toUpperCase()});}
+  });
+  if(tl.segs.length)bl.push({k:"card",x:tl.fim+4.5,y:tl.y+1,z:1.4,t:"TOTAL",c:INK,rows:[["Lead time",nf(C.lead,1)+" d"],["Agregação",n1(C.tav)+" s"]]});
+
+  /* rótulos dos fluxos de informação */
+  C.rotInfo.forEach(function(o){bl.push({k:"pill",x:o.x,y:o.y,z:.4,txt:o.t,c:AZUL});});
+  return {bs:bs,fx:fx,bl:bl};
+}
+
+/* ---- chão ---- */
+function desenharChao(M,C,t){
+  var p=C.piso,i,a,b;
+  fret(p,"#dfe5eb","#c3ccd6",1);
+  if(ui.edit){ /* grade de encaixe de 1 unidade */
+    ctx.strokeStyle="rgba(44,74,110,.045)";ctx.lineWidth=1;ctx.beginPath();
+    for(i=p[0];i<=p[2];i++){a=P(i,p[1],0);b=P(i,p[3],0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+    for(i=p[1];i<=p[3];i++){a=P(p[0],i,0);b=P(p[2],i,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+    ctx.stroke();
+  }
+  ctx.strokeStyle="rgba(44,74,110,.08)";ctx.lineWidth=1;ctx.beginPath();
+  for(i=Math.ceil(p[0]/3)*3;i<=p[2];i+=3){a=P(i,p[1],0);b=P(i,p[3],0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+  for(i=Math.ceil(p[1]/3)*3;i<=p[3];i+=3){a=P(p[0],i,0);b=P(p[2],i,0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);}
+  ctx.stroke();
+  /* corredor de material com faixa de segurança */
+  if(C.area){
+    var r=C.area;fret(r,"#f1f4f7");
+    ctx.strokeStyle="#f2b705";ctx.lineWidth=Math.max(2,S*.22);ctx.setLineDash([S*1.2,S*.6]);ctx.beginPath();
+    a=P(r[0],r[1],0);b=P(r[2],r[1],0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);
+    a=P(r[0],r[3],0);b=P(r[2],r[3],0);ctx.moveTo(a[0],a[1]);ctx.lineTo(b[0],b[1]);ctx.stroke();ctx.setLineDash([]);
+  }
+  /* pistas dos caminhões */
+  M.ligacoes.forEach(function(l){var g=C.lig[l.id]; if(!g.rota)return;
+    for(var k=1;k<g.rota.length;k++)faixa(g.rota[k-1],g.rota[k],1.5,2.6,"#c2cad3");});
+  /* destaque da seleção e da peça sob o ponteiro */
+  if(ui.edit){
+    [ui.hover,ui.sel].forEach(function(s,k){
+      if(!s||(k===0&&ui.sel&&ui.sel.tipo===s.tipo&&ui.sel.id===s.id))return;
+      var forte=k===1;
+      if(s.tipo==="no"){var no=noPorId(M,s.id); if(no){var q=retNo(no);fret([q[0]-.25,q[1]-.25,q[2]+.25,q[3]+.25],forte?"rgba(242,183,5,.28)":"rgba(242,183,5,.12)",forte?INK:"rgba(24,33,45,.45)",forte?2.2:1.2);}}
+      if(s.tipo==="lig"){var g=C.lig[s.id]; if(g){var pts=[];for(var j=0;j<20;j++)pts.push([g.k.x+Math.cos(j/20*6.2832)*2.5,g.k.y+Math.sin(j/20*6.2832)*2.5]);
+        fpoly(pts,forte?"rgba(242,183,5,.35)":"rgba(242,183,5,.15)",forte?INK:"rgba(24,33,45,.45)",forte?2.2:1.2);
+        if(g.seta)faixa(g.seta.a,g.seta.b,.9,.3,forte?"rgba(242,183,5,.7)":"rgba(242,183,5,.35)");}}
+      if(s.tipo==="info"){var gi=C.info[s.id]; if(gi&&gi.pts)floorPath(gi.pts,"#f2b705",forte?.95:.5,false,0,0,false,Math.max(6,S*.7));}
+    });
+  }
+  /* informação */
+  M.fluxosInfo.forEach(function(f,k){var g=C.info[f.id]; if(g.pts)floorPath(g.pts,AZUL,1,false,t+k*.3,f.tipo==="eletronica"?.2:.3,true);});
+  /* setas de fluxo de material */
+  M.ligacoes.forEach(function(l){var g=C.lig[l.id]; if(g.seta)setaEmpurrada(g.seta,t);});
+}
+
+/* ---- efeitos e rótulos ---- */
+function desenharFx(fx){
+  for(var i=0;i<fx.length;i++){var f=fx[i];
+    if(f.k==="d"){var p=P(f.x,f.y,f.z);ctx.globalAlpha=f.a;ctx.fillStyle=f.c;ctx.beginPath();ctx.arc(p[0],p[1],Math.max(.1,f.r*S),0,7);ctx.fill();}
+    else {ctx.globalAlpha=1;poly(f.p.map(function(q){return P(q[0],q[1],q[2]);}),f.c);}
+  }
+  ctx.globalAlpha=1;
+}
+function desenharRotulos(bl,t){
+  bl.forEach(function(b){var p=P(b.x,b.y,b.z);b.sx=p[0];b.sy=p[1];});
+  bl.sort(function(a,b){return a.sy-b.sy;});
+  ctx.textBaseline="middle";
+  for(var i=0;i<bl.length;i++){
+    var b=bl[i],x=b.sx,y=b.sy,u=S;
+    if(b.k==="card"){
+      ctx.font=fontB(.84*u,600);
+      var w=b.grid?10.6*u:b.one?Math.max(8.8*u,ctx.measureText(b.one).width+1.4*u):8.8*u,th=1.55*u,rh=1.3*u,
+          nr=b.grid?Math.ceil(b.grid.length/2):b.one?1:b.rows.length,h=th+nr*rh+.45*u,x0=x-w/2,y0=y-h;
+      ctx.strokeStyle="rgba(24,33,45,.4)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+1.5*u);ctx.stroke();
+      ctx.fillStyle="rgba(24,33,45,.18)";rr(x0+.25*u,y0+.3*u,w,h,2);ctx.fill();
+      ctx.fillStyle="#fff";rr(x0,y0,w,h,2);ctx.fill();
+      ctx.fillStyle=b.c;ctx.fillRect(x0,y0,w,th);
+      ctx.strokeStyle=INK;ctx.lineWidth=1.2;rr(x0,y0,w,h,2);ctx.stroke();
+      ctx.font=fontD(1.08*u,700);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.fillText(b.t,x,y0+th/2+.04*u,w-.6*u);
+      if(b.one){ctx.font=fontB(.84*u,600);ctx.textAlign="center";ctx.fillStyle=INK;ctx.fillText(b.one,x,y0+th+.3*u+rh*.5);}
+      var cells=b.grid||b.rows||[],cw=b.grid?w/2:w;
+      for(var r=0;r<cells.length;r++){var row=cells[r],cx0=b.grid?x0+(r%2)*cw:x0,ry=y0+th+.3*u+rh*((b.grid?(r>>1):r)+.5);
+        if(row[2]){ctx.fillStyle="rgba(210,59,42,.16)";ctx.fillRect(cx0+1,ry-rh/2,cw-2,rh);}
+        ctx.font=fontB((b.grid?.72:.8)*u,500);ctx.textAlign="left";ctx.fillStyle="#5b6878";ctx.fillText(row[0],cx0+.35*u,ry);
+        var lw=ctx.measureText(row[0]).width;
+        ctx.font=fontD((b.grid?.98:1.02)*u,700);ctx.textAlign="right";ctx.fillStyle=row[2]?"#d23b2a":INK;ctx.fillText(row[1],cx0+cw-.35*u,ry,Math.max(u,cw-lw-1*u));
+      }
+      if(b.grid){ctx.strokeStyle="#cdd5de";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y0+th);ctx.lineTo(x,y0+h);ctx.stroke();}
+    } else if(b.k==="tri"){
+      var a=1.25*u;
+      poly([[x,y-a*1.75],[x-a,y],[x+a,y]],"#ffd23f",INK,1.4);
+      ctx.font=fontD(1.15*u,700);ctx.textAlign="center";ctx.fillStyle=INK;ctx.fillText("I",x,y-a*.6);
+      ctx.font=fontD(1.15*u,700);halo(b.sem?"— d":nf(b.d,1)+" d",x,y-a*1.75-1.55*u,INK);
+      ctx.font=fontB(.82*u,600);halo(mil(b.q)+" pç",x,y-a*1.75-.55*u,"#5b6878");
+    } else if(b.k==="txt"){
+      ctx.font=fontD(1.25*u,700);ctx.textAlign="center";halo(b.txt,x,y,b.c);
+      if(b.sub){ctx.font=fontB(.7*u,600);halo(b.sub,x,y+1.15*u,"#5b6878");}
+    } else if(b.k==="pill"){
+      ctx.font=fontD(.98*u,600);ctx.textAlign="center";
+      var tw=ctx.measureText(b.txt).width+1.1*u,ph=1.5*u;
+      ctx.fillStyle="rgba(255,255,255,.94)";rr(x-tw/2,y-ph/2,tw,ph,ph/2);ctx.fill();
+      ctx.strokeStyle=b.c;ctx.lineWidth=1.3;ctx.stroke();
+      ctx.fillStyle=b.c;ctx.fillText(b.txt,x,y+.04*u);
+    } else if(b.k==="burst"){
+      var cx=x,cy=y-(2+b.nr*1.3)*u-3.1*u,R=3.3*u*(1+.05*Math.sin(t*5)),pts=[];
+      for(var k=0;k<24;k++){var an=k/24*Math.PI*2,rad=k%2?R*.76:R;pts.push([cx+Math.cos(an)*rad*1.5,cy+Math.sin(an)*rad*.8]);}
+      poly(pts,"#ffd23f","#d23b2a",2);
+      ctx.textAlign="center";ctx.font=fontD(1.2*u,700);ctx.fillStyle="#d23b2a";ctx.fillText("GARGALO",cx,cy-.55*u);
+      ctx.font=fontB(.78*u,600);ctx.fillStyle=INK;ctx.fillText(b.txt,cx,cy+.6*u,R*2.3);
+    }
+  }
+}
+
+/* =========================================================================
+   4. EDITOR  -  estado, histórico, persistência, paleta, painel e ponteiro
+   ========================================================================= */
+var M,rev=0,cache=null,modo="editar",sel=null,t=3,paused=false,last=0;
+var pilhaU=[],pilhaR=[],ultChave=null,arr=null,armado=null,fantasma=null,rato={x:0,y:0,dentro:false},leitura=null,salvarTmr=0,avisouSalvar=false;
+var $=function(id){return document.getElementById(id);};
+var side=$("side"),palEl=$("pal"),toastEl=$("toast"),toastTmr=0;
+
+function calc(){ if(!cache||cache.rev!==rev){cache=calcular(M);cache.rev=rev;} return cache; }
+
+/* ---- persistência ---- */
+function salvar(){
+  try{localStorage.setItem(CHAVE,JSON.stringify(M));}
+  catch(e){ if(!avisouSalvar){avisouSalvar=true;avisar("Não foi possível salvar no navegador. Use Copiar mapa (JSON) para guardar o trabalho.",true);} }
+}
+function carregar(){
+  try{var s=localStorage.getItem(CHAVE); if(s)return normalizar(JSON.parse(s));}catch(e){}
+  return null;
+}
+function alterou(){
+  rev++; clearTimeout(salvarTmr); salvarTmr=setTimeout(salvar,250); atualizarUI();
+}
+
+/* ---- histórico ---- */
+function fotografar(){pilhaU.push(JSON.stringify(M)); if(pilhaU.length>150)pilhaU.shift(); pilhaR.length=0;}
+function acao(fn){fotografar();ultChave=null;fn();alterou();}
+function editar(chave,fn){ if(ultChave!==chave){fotografar();ultChave=chave;} fn(); alterou(); }
+function restaurar(de,para){
+  if(!de.length)return;
+  para.push(JSON.stringify(M)); M=JSON.parse(de.pop()); ultChave=null;
+  if(sel&&!alvo(sel))sel=null;
+  alterou(); montarPainel();
+}
+function desfazer(){restaurar(pilhaU,pilhaR);}
+function refazer(){restaurar(pilhaR,pilhaU);}
+function alvo(s){return s.tipo==="no"?noPorId(M,s.id):s.tipo==="lig"?ligPorId(M,s.id):infoPorId(M,s.id);}
+
+/* ---- avisos ---- */
+function avisar(msg,erro){
+  toastEl.textContent=msg;toastEl.className="toast on"+(erro?" erro":"");
+  clearTimeout(toastTmr);toastTmr=setTimeout(function(){toastEl.className="toast"+(erro?" erro":"");},erro?5200:3200);
+}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[c];});}
+function setText(el,v){ if(el.textContent!==v)el.textContent=v; }
+
+/* ---- indicadores e texto de estado ---- */
+function atualizarUI(){
+  var C=calc(),c=M.cliente;
+  setText($("vDem"),mil(c.demandaDia));
+  setText($("vDisp"),mil(C.dispDia/60));
+  setText($("vTakt"),C.takt>0?n1(C.takt):"—");
+  setText($("vLead"),c.demandaDia>0?nf(C.lead,1):"—");
+  setText($("vTav"),n1(C.tav));
+  setText($("vEff"),C.lead>0&&C.dispDia>0?nf(C.eff,3):"—");
+  $("tagEx").hidden=!M.exemplo;
+  var m=M.mapa,dt=/^\d{4}-\d{2}-\d{2}$/.test(m.data)?m.data.split("-").reverse().join("/"):m.data;
+  setText($("sub"),[m.nome,m.familia&&("Família: "+m.familia),m.clienteFinal,dt].filter(Boolean).join(" · "));
+  var s="<strong>Estado atual</strong>",temProc=M.nos.some(function(n){return n.tipo==="processo";});
+  if(!noDoTipo(M,"cliente"))s+="Comece pelo cliente: arraste a peça Cliente para o mapa e informe a demanda diária.";
+  else if(c.demandaDia<=0)s+="Selecione o cliente e informe a demanda diária, os turnos e o tempo disponível para calcular o takt.";
+  else if(!temProc)s+="Takt de "+n1(C.takt)+" s. Agora adicione os postos de trabalho e o fornecedor.";
+  else {
+    s+="Takt de "+n1(C.takt)+" s. ";
+    if(!C.completo)s+="O fluxo ainda não vai do fornecedor ao cliente: ligue as peças arrastando do ponto de saída de uma até a outra. ";
+    else s+="Fluxo empurrado do fornecedor ao cliente, com "+nf(C.lead,1)+" dias de estoque para "+n1(C.tav)+" s de agregação de valor. ";
+    if(C.gargalos.length)s+="<em>Gargalo: "+C.gargalos.map(function(n){return esc(n.dados.nome)+" (T/C "+n1(n.dados.tc)+" s)";}).join(", ")+", acima do takt.</em>";
+    else if(C.completo)s+="Nenhum processo acima do takt.";
+  }
+  var st=$("stateTxt"); if(st.innerHTML!==s)st.innerHTML=s;
+  $("bUndo").disabled=!pilhaU.length;$("bRedo").disabled=!pilhaR.length;
+  Array.prototype.forEach.call(palEl.querySelectorAll(".pc"),function(b){
+    var tp=b.dataset.tipo; b.disabled=tp!=="processo"&&!!noDoTipo(M,tp);
+  });
+  if(leitura)leitura();
+}
+
+/* ---- câmera ---- */
+function enquadrar(){
+  var C=calc(),p=C.piso,pts=[[p[0],p[1],0],[p[2],p[1],0],[p[2],p[3],0],[p[0],p[3],0]],a=[1e9,1e9,-1e9,-1e9];
+  M.nos.forEach(function(n){var r=retNo(n);pts.push([r[0],r[1],11],[r[2],r[1],11],[r[0],r[3],11]);});
+  pts.forEach(function(q){var u=q[0]*AX-q[1]*AY,v=q[0]*BX+q[1]*BY-q[2]*ZS; if(u<a[0])a[0]=u; if(v<a[1])a[1]=v; if(u>a[2])a[2]=u; if(v>a[3])a[3]=v;});
+  vis={cx:(a[0]+a[2])/2,cy:(a[1]+a[3])/2,w:a[2]-a[0]+2,h:a[3]-a[1]+2};
+  zoom=W<760?1.9:1;panX=0;panY=0;
+}
+function darZoom(f,mx,my){
+  var z=Math.max(.5,Math.min(5,zoom*f)); if(z===zoom)return;
+  cam();var ux=(mx-OX)/S,uy=(my-OY)/S; zoom=z;
+  var s2=Math.min(W/vis.w,H/vis.h)*zoom; panX=mx-ux*s2-W/2+vis.cx*s2; panY=my-uy*s2-H/2+vis.cy*s2;
+}
+
+/* ---- localização de peças sob o ponteiro ---- */
+function dentroPoli(pl,x,y){
+  for(var i=0,j=pl.length-1,c=false;i<pl.length;j=i++){
+    if((pl[i][1]>y)!==(pl[j][1]>y)&&x<(pl[j][0]-pl[i][0])*(y-pl[i][1])/(pl[j][1]-pl[i][1])+pl[i][0])c=!c;
+  }
+  return c;
+}
+function hexVolume(r,h){return [P(r[0],r[3],0),P(r[2],r[3],0),P(r[2],r[1],0),P(r[2],r[1],h),P(r[0],r[1],h),P(r[0],r[3],h)];}
+function distSeg(x,y,a,b){
+  var dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy,u=l?Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/l)):0;
+  return Math.hypot(x-a[0]-dx*u,y-a[1]-dy*u);
+}
+function noEm(x,y,ignorar){
+  var best=null,bd=-1e9;
+  M.nos.forEach(function(n){ if(n.id===ignorar)return;
+    if(dentroPoli(hexVolume(retNo(n),TIPOS[n.tipo].alt),x,y)){var d=n.pos.x+n.pos.y; if(d>bd){bd=d;best=n;}} });
+  return best;
+}
+function porta(n,qual){var r=retNo(n);return qual==="s"?[r[2]+.8,n.pos.y]:[r[0]-.8,n.pos.y];}
+function temEntrada(n){return n.tipo==="processo"||n.tipo==="cliente";}
+function portaEm(x,y){
+  for(var i=M.nos.length-1;i>=0;i--){var q=porta(M.nos[i],"s"),p=P(q[0],q[1],0); if(Math.hypot(x-p[0],y-p[1])<11)return M.nos[i];}
+  return null;
+}
+function ligEm(x,y){
+  var C=calc(),achou=null;
+  M.ligacoes.forEach(function(l){var g=C.lig[l.id]; if(achou)return;
+    if(dentroPoli(hexVolume([g.k.x-1.4,g.k.y-1.4,g.k.x+1.4,g.k.y+1.4],g.topo+3.6),x,y))achou=l;
+    else if(g.seta&&distSeg(x,y,P(g.seta.a[0],g.seta.a[1],0),P(g.seta.b[0],g.seta.b[1],0))<Math.max(7,S*.6))achou=l;});
+  return achou;
+}
+function infoEm(x,y){
+  var C=calc(),achou=null;
+  M.fluxosInfo.forEach(function(f){var g=C.info[f.id]; if(achou||!g.pts)return;
+    for(var i=1;i<g.pts.length;i++) if(distSeg(x,y,P(g.pts[i-1][0],g.pts[i-1][1],0),P(g.pts[i][0],g.pts[i][1],0))<7){achou=f;break;}});
+  return achou;
+}
+
+/* ---- seleção e ações ---- */
+function selecionar(s){
+  if((sel&&s&&sel.tipo===s.tipo&&sel.id===s.id)||(!sel&&!s))return;
+  sel=s;ultChave=null;montarPainel();
+}
+function excluirSelecao(){
+  if(!sel||!alvo(sel))return;
+  var s=sel;
+  acao(function(){
+    if(s.tipo==="no")removerNo(M,s.id);
+    else if(s.tipo==="lig")M.ligacoes=M.ligacoes.filter(function(l){return l.id!==s.id;});
+    else M.fluxosInfo=M.fluxosInfo.filter(function(f){return f.id!==s.id;});
+  });
+  sel=null;montarPainel();
+}
+function duplicarSelecao(){
+  if(!sel||sel.tipo!=="no")return;
+  var no=noPorId(M,sel.id);
+  if(!no||no.tipo!=="processo"){avisar("Só postos de trabalho podem ser duplicados: o mapa tem um fornecedor, um cliente e um controle da produção.",true);return;}
+  var novo;
+  acao(function(){novo=criarNo(M,"processo",no.modelo,no.pos.x+8,no.pos.y);novo.dados=JSON.parse(JSON.stringify(no.dados));});
+  selecionar({tipo:"no",id:novo.id});
+}
+function inserir(d,wx,wy,lig){
+  if(d.tipo!=="processo"&&noDoTipo(M,d.tipo)){avisar("O mapa já tem esta peça. Cada mapa tem um fornecedor, um cliente e um controle da produção.",true);return;}
+  var no,dividiu=false;
+  acao(function(){no=criarNo(M,d.tipo,d.modelo,wx,wy); if(lig&&d.tipo==="processo")dividiu=dividirLigacao(M,lig.id,no.id);});
+  selecionar({tipo:"no",id:no.id});
+  if(dividiu)avisar(no.dados.nome+" inserido no meio da ligação. A linha do tempo foi atualizada.");
+}
+function tentarLigar(a,b){
+  var r,antes=JSON.stringify(M);
+  r=ligar(M,a,b);
+  if(r.erro){avisar(r.erro,true);return;}
+  pilhaU.push(antes);pilhaR.length=0;ultChave=null;alterou();selecionar(r.sel);
+}
+function trocarMapa(novo,msg){
+  acao(function(){M=novo;});
+  sel=null;montarPainel();enquadrar(); if(msg)avisar(msg);
+}
+function setModo(m){
+  modo=m;ui.edit=m==="editar";arr=null;armado=null;fantasma=null;marcarPaleta();
+  document.body.classList.toggle("apresentar",m!=="editar");
+  $("bEdit").setAttribute("aria-pressed",String(m==="editar"));$("bShow").setAttribute("aria-pressed",String(m!=="editar"));
+  $("hint").textContent=m==="editar"
+    ?"Arraste peças da paleta para o chão. Arraste do ponto amarelo de uma peça até outra para ligar. Chão vazio move a câmera."
+    :"Arraste para mover a cena";
+  if(m!=="editar"&&paused&&!reduzMov)setPaused(false);
+  resize();
+}
+
+/* ---- paleta ---- */
+function el(tag,attrs,kids){
+  var e=document.createElement(tag),k;
+  for(k in attrs||{}){ if(k==="class")e.className=attrs[k]; else if(k==="text")e.textContent=attrs[k]; else e.setAttribute(k,attrs[k]); }
+  (kids||[]).forEach(function(c){e.appendChild(typeof c==="string"?document.createTextNode(c):c);});
+  return e;
+}
+function marcarPaleta(){
+  Array.prototype.forEach.call(palEl.querySelectorAll(".pc"),function(b){
+    b.setAttribute("aria-pressed",String(!!armado&&armado.tipo===b.dataset.tipo&&(armado.modelo||"")===(b.dataset.modelo||"")));});
+  cv.style.cursor=armado?"copy":"";
+}
+function montarPaleta(){
+  palEl.appendChild(el("h2",{text:"Peças"}));
+  function item(tipo,modelo,rot,cor){
+    var sw=el("i"),b=el("button",{class:"pc",type:"button","data-tipo":tipo,"data-modelo":modelo||"","aria-pressed":"false",title:"Arraste para o mapa, ou clique e depois clique no chão"},[sw,rot]);
+    sw.style.background=cor;
+    var p=null;
+    b.addEventListener("pointerdown",function(e){ if(b.disabled)return; p={x:e.clientX,y:e.clientY,mov:false}; try{b.setPointerCapture(e.pointerId);}catch(_){} });
+    b.addEventListener("pointermove",function(e){
+      if(!p)return;
+      if(!p.mov&&Math.hypot(e.clientX-p.x,e.clientY-p.y)>6){p.mov=true;armado=null;marcarPaleta();}
+      if(p.mov){var r=cv.getBoundingClientRect(),dn=e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;
+        fantasma=dn?{tipo:tipo,modelo:modelo,sx:e.clientX-r.left,sy:e.clientY-r.top}:null;}
+    });
+    b.addEventListener("pointerup",function(e){
+      if(!p)return; var q=p;p=null;
+      if(q.mov){ if(fantasma)soltarPeca(fantasma,fantasma.sx,fantasma.sy); fantasma=null; }
+      else { armado=armado&&armado.tipo===tipo&&armado.modelo===modelo?null:{tipo:tipo,modelo:modelo}; marcarPaleta(); }
+    });
+    b.addEventListener("pointercancel",function(){p=null;fantasma=null;});
+    b.addEventListener("click",function(e){ if(e.detail===0&&!b.disabled){var w=chao(W/2,H/2);armado=null;marcarPaleta();inserir({tipo:tipo,modelo:modelo},w[0],w[1],null);} });
+    palEl.appendChild(b);
+  }
+  palEl.appendChild(el("h3",{text:"Postos de trabalho"}));
+  MODELOS.forEach(function(m){item("processo",m,CAT[m].rotulo,CAT[m].cor);});
+  palEl.appendChild(el("h3",{text:"Porta a porta"}));
+  item("fornecedor",null,"Fornecedor","#cdd5dd");item("cliente",null,"Cliente","#d9cfc0");item("pcp",null,"Controle da produção","#2c4a6e");
+  palEl.appendChild(el("p",{text:"Arraste para o mapa, ou clique na peça e depois no chão. Solte um posto sobre uma ligação para inseri-lo no meio."}));
+}
+function soltarPeca(d,sx,sy){
+  cam();var w=chao(sx,sy),lig=d.tipo==="processo"?ligEm(sx,sy):null;
+  inserir(d,w[0],w[1],lig);
+}
+
+/* ---- painel lateral ---- */
+var seqCampo=0;
+function campo(pai,rot,val,o,fn){
+  var id="c"+(++seqCampo),inp=el("input",{id:id,type:o.tipo||"text"});
+  if(o.min!=null)inp.min=o.min; if(o.max!=null)inp.max=o.max; if(o.tipo==="number")inp.step=o.step||"any";
+  if(o.dica)inp.placeholder=o.dica;
+  inp.value=val==null?"":val;
+  inp.addEventListener("input",function(){
+    var v=inp.value;
+    if(o.tipo==="number"){
+      if(v===""){ if(!o.vazio)return; v=null; }
+      else { v=parseFloat(v); if(!isFinite(v))return; if(o.min!=null&&v<o.min)v=o.min; if(o.max!=null&&v>o.max)v=o.max; if(o.inteiro)v=Math.round(v); }
+    }
+    editar(id,function(){fn(v);});
+  });
+  inp.addEventListener("blur",function(){ultChave=null;});
+  pai.appendChild(el("div",{class:"fld"},[el("label",{for:id,text:rot}),inp]));
+  return inp;
+}
+function escolha(pai,rot,val,ops,fn){
+  var id="c"+(++seqCampo),s=el("select",{id:id});
+  ops.forEach(function(o){var op=el("option",{value:o[0],text:o[1]}); if(o[2])op.disabled=true; s.appendChild(op);});
+  s.value=val;
+  s.addEventListener("change",function(){fn(s.value);});
+  pai.appendChild(el("div",{class:"fld"},[el("label",{for:id,text:rot}),s]));
+  return s;
+}
+function botoes(pai,lista){
+  var d=el("div",{class:"btns"});
+  lista.forEach(function(b){var x=el("button",{type:"button",text:b[0],class:b[2]||""});x.addEventListener("click",b[1]);d.appendChild(x);});
+  pai.appendChild(d);return d;
+}
+function montarPainel(){
+  side.textContent="";leitura=null;
+  var sec=el("div",{class:"sec"}),o=sel&&alvo(sel);
+  side.appendChild(sec);
+  if(!o){sel=null;painelMapa(sec);}
+  else if(sel.tipo==="no"){
+    if(o.tipo==="processo")painelProcesso(sec,o); else if(o.tipo==="cliente")painelCliente(sec,o);
+    else if(o.tipo==="fornecedor")painelFornecedor(sec,o); else painelPcp(sec,o);
+  }
+  else if(sel.tipo==="lig")painelLigacao(sec,o);
+  else painelInfo(sec,o);
+  painelArquivo();
+  if(leitura)leitura();
+}
+function painelMapa(sec){
+  sec.appendChild(el("h2",{text:"Mapa"}));
+  var m=M.mapa;
+  campo(sec,"Nome do mapa",m.nome,{},function(v){M.mapa.nome=v;M.exemplo=false;});
+  campo(sec,"Família de produtos",m.familia,{},function(v){M.mapa.familia=v;});
+  campo(sec,"Cliente final",m.clienteFinal,{},function(v){M.mapa.clienteFinal=v;});
+  campo(sec,"Data",m.data,{tipo:"date"},function(v){M.mapa.data=v;});
+  sec.appendChild(el("p",{class:"nota",text:"Um mapa representa uma família de produtos, porta a porta. Comece pelo cliente, depois os processos, os estoques, o fornecedor e o fluxo de informação. Selecione uma peça ou uma ligação para editar os dados."}));
+}
+function painelProcesso(sec,no){
+  var d=no.dados,g;
+  sec.appendChild(el("h2",{text:"Posto de trabalho"}));
+  campo(sec,"Nome do processo",d.nome,{},function(v){no.dados.nome=v;});
+  escolha(sec,"Modelo da estação",no.modelo,MODELOS.map(function(m){return [m,CAT[m].rotulo];}),function(v){
+    acao(function(){ if(no.dados.nome===CAT[no.modelo].nome)no.dados.nome=CAT[v].nome; no.modelo=v; }); montarPainel(); });
+  g=el("div",{class:"g2"});sec.appendChild(g);
+  campo(g,"T/C (s)",d.tc,{tipo:"number",min:0},function(v){no.dados.tc=v;});
+  campo(g,"T/R (min)",d.tr,{tipo:"number",min:0},function(v){no.dados.tr=v;});
+  campo(g,"Disponibilidade (%)",d.disp,{tipo:"number",min:0,max:100},function(v){no.dados.disp=v;});
+  campo(g,"Operadores",d.op,{tipo:"number",min:0,max:99,step:1,inteiro:true},function(v){no.dados.op=v;});
+  campo(g,"Tempo disp. (s/dia)",d.tempoDisp,{tipo:"number",min:0},function(v){no.dados.tempoDisp=v;});
+  campo(g,"Refugo (%)",d.refugo,{tipo:"number",min:0,max:100,vazio:true,dica:"opcional"},function(v){no.dados.refugo=v;});
+  campo(sec,"Lote ou TPT (toda peça todo...)",d.lote,{dica:"ex.: 1 semana"},function(v){no.dados.lote=v;});
+  var lt=el("p",{class:"leit"});sec.appendChild(lt);
+  leitura=function(){var C=calc(),n=noPorId(M,no.id); if(!n)return;
+    if(C.takt<=0){lt.className="leit";lt.textContent="Informe a demanda do cliente para comparar o T/C com o takt.";}
+    else if(C.gargalo[n.id]){lt.className="leit bad";lt.textContent="Gargalo: T/C de "+n1(n.dados.tc)+" s acima do takt de "+n1(C.takt)+" s.";}
+    else {lt.className="leit";lt.textContent="T/C de "+n1(n.dados.tc)+" s dentro do takt de "+n1(C.takt)+" s.";}};
+  botoes(sec,[["Duplicar",duplicarSelecao],["Excluir",excluirSelecao,"perigo"]]);
+}
+function painelCliente(sec,no){
+  var c=M.cliente,g;
+  sec.appendChild(el("h2",{text:"Cliente"}));
+  campo(sec,"Demanda diária (peças)",c.demandaDia,{tipo:"number",min:0},function(v){M.cliente.demandaDia=v;});
+  g=el("div",{class:"g2"});sec.appendChild(g);
+  campo(g,"Turnos por dia",c.turnos,{tipo:"number",min:0,max:4},function(v){M.cliente.turnos=v;});
+  campo(g,"Disponível (min/turno)",c.tempoDisponivelMin,{tipo:"number",min:0},function(v){M.cliente.tempoDisponivelMin=v;});
+  campo(sec,"Frequência de expedição",c.freqExpedicao,{dica:"ex.: diária"},function(v){M.cliente.freqExpedicao=v;});
+  var lt=el("p",{class:"leit"});sec.appendChild(lt);
+  leitura=function(){var C=calc();lt.textContent=C.takt>0
+    ?"Takt = "+mil(C.dispDia)+" s ÷ "+mil(M.cliente.demandaDia)+" peças = "+n1(C.takt)+" s por peça."
+    :"Takt = tempo disponível por dia ÷ demanda diária. Informe a demanda.";};
+  botoes(sec,[["Excluir",excluirSelecao,"perigo"]]);
+}
+function painelFornecedor(sec,no){
+  sec.appendChild(el("h2",{text:"Fornecedor"}));
+  campo(sec,"Material",M.fornecedor.material,{dica:"ex.: chapa de aço"},function(v){M.fornecedor.material=v;});
+  campo(sec,"Frequência de entrega",M.fornecedor.freqEntrega,{dica:"ex.: 2× por semana"},function(v){M.fornecedor.freqEntrega=v;});
+  sec.appendChild(el("p",{class:"nota",text:"Arraste do ponto amarelo do fornecedor até o primeiro posto. O estoque de matéria-prima pertence a essa ligação."}));
+  botoes(sec,[["Excluir",excluirSelecao,"perigo"]]);
+}
+function painelPcp(sec,no){
+  sec.appendChild(el("h2",{text:"Controle da produção"}));
+  campo(sec,"Nome",no.dados.nome,{},function(v){no.dados.nome=v;});
+  campo(sec,"Descrição",no.dados.descricao,{dica:"ex.: MRP"},function(v){no.dados.descricao=v;});
+  var fl=M.fluxosInfo.filter(function(f){return f.origem===no.id||f.destino===no.id;});
+  sec.appendChild(el("p",{class:"nota",text:"Fluxos de informação: arraste do ponto amarelo do cliente até o PCP (pedidos e previsões) e do PCP até o fornecedor e os postos (pedidos e programações)."}));
+  if(fl.length){var l=el("div",{class:"lst"});
+    fl.forEach(function(f){var b=el("button",{type:"button",text:nomeNo(noPorId(M,f.origem))+" → "+nomeNo(noPorId(M,f.destino))+": "+(f.rotulo||"sem rótulo")});
+      b.addEventListener("click",function(){selecionar({tipo:"info",id:f.id});});l.appendChild(b);});
+    sec.appendChild(l);}
+  botoes(sec,[["Excluir",excluirSelecao,"perigo"]]);
+}
+function painelLigacao(sec,l){
+  sec.appendChild(el("h2",{text:"Ligação e estoque"}));
+  sec.appendChild(el("p",{class:"nota",text:nomeNo(noPorId(M,l.origem))+" → "+nomeNo(noPorId(M,l.destino))}));
+  campo(sec,"Estoque (peças)",l.estoquePecas,{tipo:"number",min:0,step:1,inteiro:true},function(v){l.estoquePecas=v;});
+  escolha(sec,"Tipo de fluxo",l.fluxo,Object.keys(FLUXOS).map(function(k){return [k,FLUXOS[k].rotulo,!FLUXOS[k].ativo];}),function(v){acao(function(){l.fluxo=v;});});
+  var lt=el("p",{class:"leit"});sec.appendChild(lt);
+  leitura=function(){var x=ligPorId(M,l.id); if(!x)return; var C=calc();
+    lt.textContent=M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia)+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
+      :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.";};
+  botoes(sec,[["Excluir ligação",excluirSelecao,"perigo"]]);
+}
+function painelInfo(sec,f){
+  sec.appendChild(el("h2",{text:"Fluxo de informação"}));
+  sec.appendChild(el("p",{class:"nota",text:nomeNo(noPorId(M,f.origem))+" → "+nomeNo(noPorId(M,f.destino))}));
+  campo(sec,"Rótulo",f.rotulo,{dica:"ex.: Programação"},function(v){f.rotulo=v;});
+  campo(sec,"Frequência",f.frequencia,{dica:"ex.: semanal"},function(v){f.frequencia=v;});
+  escolha(sec,"Tipo",f.tipo,Object.keys(TIPOS_INFO).map(function(k){return [k,TIPOS_INFO[k]];}),function(v){acao(function(){f.tipo=v;});});
+  botoes(sec,[["Excluir fluxo",excluirSelecao,"perigo"]]);
+}
+function painelArquivo(){
+  var sec=el("div",{class:"sec arq"});side.appendChild(sec);
+  sec.appendChild(el("h2",{text:"Arquivo"}));
+  botoes(sec,[["Copiar mapa (JSON)",copiarMapa],["Colar mapa (JSON)",abrirColar]]);
+  botoes(sec,[["Novo mapa",function(){trocarMapa(mapaVazio(),"Mapa novo criado. Ctrl+Z desfaz.");}],["Carregar exemplo",function(){trocarMapa(mapaExemplo(),"Exemplo carregado. Ctrl+Z desfaz.");}]]);
+  sec.appendChild(el("p",{class:"nota",text:"O mapa é salvo automaticamente neste navegador."}));
+}
+
+/* ---- copiar e colar JSON ---- */
+var dlg=$("dlg"),dlgTa=$("dlgTa");
+function abrirDlg(titulo,texto,valor,carregar){
+  $("dlgT").textContent=titulo;$("dlgP").textContent=texto;dlgTa.value=valor;$("dlgErro").textContent="";
+  $("dlgOk").hidden=!carregar;dlgTa.readOnly=!carregar;
+  if(dlg.showModal)dlg.showModal(); else dlg.setAttribute("open","");
+  dlgTa.focus(); if(!carregar)dlgTa.select();
+}
+function copiarMapa(){
+  var js=JSON.stringify(M,null,1);
+  function reserva(){abrirDlg("Copiar mapa (JSON)","Selecione todo o texto, copie com Ctrl+C e cole em Colar mapa (JSON) no outro computador.",js,false);}
+  try{ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(js).then(function(){avisar("Mapa copiado. No outro computador, use Colar mapa (JSON).");},reserva); else reserva(); }
+  catch(e){reserva();}
+}
+function abrirColar(){abrirDlg("Colar mapa (JSON)","Cole aqui com Ctrl+V o texto copiado em Copiar mapa (JSON) e clique em Carregar mapa.","",true);}
+$("dlgOk").addEventListener("click",function(){
+  var novo;
+  try{novo=normalizar(JSON.parse(dlgTa.value));}
+  catch(e){$("dlgErro").textContent=e instanceof SyntaxError?"O texto colado não é um JSON válido. Copie o mapa inteiro e tente de novo.":e.message;return;}
+  dlg.close();trocarMapa(novo,"Mapa carregado. Ctrl+Z volta ao mapa anterior.");
+});
+$("dlgX").addEventListener("click",function(){dlg.close();});
+
+/* ---- ponteiro no canvas ---- */
+function pt(e){var r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top};}
+cv.addEventListener("pointerdown",function(e){
+  if(e.pointerType==="mouse"&&e.button!==0)return;
+  var m=pt(e),n,l,f,w; rato.x=m.x;rato.y=m.y;rato.dentro=true; cam();
+  try{cv.setPointerCapture(e.pointerId);}catch(_){}
+  if(modo==="editar"){
+    if(armado){var d=armado;armado=null;marcarPaleta();soltarPeca(d,m.x,m.y);return;}
+    if((n=portaEm(m.x,m.y))){arr={k:"lig",de:n.id};return;}
+    if((n=noEm(m.x,m.y))){selecionar({tipo:"no",id:n.id});w=chao(m.x,m.y);arr={k:"no",id:n.id,ox:n.pos.x-w[0],oy:n.pos.y-w[1],sx:m.x,sy:m.y,mov:false,foto:false};return;}
+    if((l=ligEm(m.x,m.y))){selecionar({tipo:"lig",id:l.id});return;}
+    if((f=infoEm(m.x,m.y))){selecionar({tipo:"info",id:f.id});return;}
+  }
+  arr={k:"pan",sx:m.x,sy:m.y,px:panX,py:panY,mov:false};
+});
+cv.addEventListener("pointermove",function(e){
+  var m=pt(e); rato.x=m.x;rato.y=m.y;rato.dentro=true;
+  if(!arr){
+    if(modo!=="editar"||armado){ui.hover=null;return;}
+    var n=portaEm(m.x,m.y),l,f;
+    if(n){ui.hover={tipo:"porta",id:n.id};cv.style.cursor="crosshair";return;}
+    if((n=noEm(m.x,m.y))){ui.hover={tipo:"no",id:n.id};cv.style.cursor="move";return;}
+    if((l=ligEm(m.x,m.y))){ui.hover={tipo:"lig",id:l.id};cv.style.cursor="pointer";return;}
+    if((f=infoEm(m.x,m.y))){ui.hover={tipo:"info",id:f.id};cv.style.cursor="pointer";return;}
+    ui.hover=null;cv.style.cursor="";return;
+  }
+  if(arr.k==="pan"){ if(Math.hypot(m.x-arr.sx,m.y-arr.sy)>3)arr.mov=true; if(arr.mov){panX=arr.px+m.x-arr.sx;panY=arr.py+m.y-arr.sy;} return; }
+  if(arr.k==="no"){
+    var no=noPorId(M,arr.id); if(!no){arr=null;return;}
+    if(!arr.mov){ if(Math.hypot(m.x-arr.sx,m.y-arr.sy)<4)return; arr.mov=true; }
+    var w=chao(m.x,m.y),nx=Math.round(w[0]+arr.ox),ny=Math.round(w[1]+arr.oy);
+    if(nx===no.pos.x&&ny===no.pos.y)return;
+    /* encaixe na grade com bloqueio de sobreposição: tenta o destino, depois desliza em um eixo */
+    var cand=[[nx,ny],[nx,no.pos.y],[no.pos.x,ny]];
+    for(var i=0;i<3;i++){var c=cand[i];
+      if((c[0]!==no.pos.x||c[1]!==no.pos.y)&&livre(M,no.tipo,c[0],c[1],no.id)){
+        if(!arr.foto){fotografar();ultChave=null;arr.foto=true;}
+        no.pos.x=c[0];no.pos.y=c[1];alterou();break;
+      }}
+  }
+});
+function fimPonteiro(e){
+  var a=arr;arr=null; if(!a)return;
+  var m=pt(e);
+  if(e.type==="pointercancel")return;
+  if(a.k==="pan"){ if(!a.mov&&modo==="editar")selecionar(null); return; }
+  if(a.k==="lig"){ var n=noEm(m.x,m.y,a.de); if(n)tentarLigar(a.de,n.id); return; }
+  if(a.k==="no"&&a.mov){
+    var no=noPorId(M,a.id),l;
+    if(no&&no.tipo==="processo"&&!saidaDe(M,no.id)&&!entradaDe(M,no.id)&&(l=ligEm(m.x,m.y))){
+      if(!a.foto)fotografar();
+      if(dividirLigacao(M,l.id,no.id)){ultChave=null;alterou();avisar(no.dados.nome+" inserido no meio da ligação. A linha do tempo foi atualizada.");}
+    }
+  }
+}
+cv.addEventListener("pointerup",fimPonteiro);
+cv.addEventListener("pointercancel",fimPonteiro);
+cv.addEventListener("pointerleave",function(){rato.dentro=false; if(!arr)ui.hover=null;});
+cv.addEventListener("wheel",function(e){e.preventDefault();var m=pt(e);darZoom(e.deltaY<0?1.12:1/1.12,m.x,m.y);},{passive:false});
+
+/* ---- teclado ---- */
+document.addEventListener("keydown",function(e){
+  var tg=e.target,emCampo=tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName));
+  if(e.key==="Escape"){ if(dlg.open)return; armado=null;fantasma=null;arr=null;marcarPaleta(); if(!emCampo)selecionar(null); return; }
+  if(modo!=="editar"||emCampo||dlg.open)return;
+  var k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
+  if(ctrl&&k==="z"&&!e.shiftKey){e.preventDefault();desfazer();}
+  else if(ctrl&&(k==="y"||(k==="z"&&e.shiftKey))){e.preventDefault();refazer();}
+  else if(ctrl&&k==="d"){e.preventDefault();duplicarSelecao();}
+  else if(k==="delete"||k==="backspace"){ if(sel){e.preventDefault();excluirSelecao();} }
+});
+
+/* ---- sobreposição do modo Editar: portas, elástico da ligação e fantasma ---- */
+function desenharEditor(C){
+  var i,n,p,q;
+  for(i=0;i<M.nos.length;i++){
+    n=M.nos[i];
+    if(temEntrada(n)){q=porta(n,"e");p=P(q[0],q[1],0);ctx.beginPath();ctx.arc(p[0],p[1],5,0,7);ctx.fillStyle="#fff";ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1.6;ctx.stroke();}
+    q=porta(n,"s");p=P(q[0],q[1],0);
+    var quente=(ui.hover&&ui.hover.tipo==="porta"&&ui.hover.id===n.id)||(arr&&arr.k==="lig"&&arr.de===n.id);
+    ctx.beginPath();ctx.arc(p[0],p[1],quente?8.5:6.5,0,7);ctx.fillStyle="#f2b705";ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1.8;ctx.stroke();
+    ctx.beginPath();ctx.moveTo(p[0]-2,p[1]-3);ctx.lineTo(p[0]+3,p[1]);ctx.lineTo(p[0]-2,p[1]+3);ctx.closePath();ctx.fillStyle=INK;ctx.fill();
+  }
+  if(arr&&arr.k==="lig"&&(n=noPorId(M,arr.de))){
+    q=porta(n,"s");p=P(q[0],q[1],0);
+    var al=noEm(rato.x,rato.y,arr.de);
+    if(al){var r=retNo(al);fret([r[0]-.25,r[1]-.25,r[2]+.25,r[3]+.25],"rgba(23,138,90,.18)","#178a5a",2);}
+    ctx.setLineDash([7,5]);ctx.strokeStyle=INK;ctx.lineWidth=2.4;ctx.beginPath();ctx.moveTo(p[0],p[1]);ctx.lineTo(rato.x,rato.y);ctx.stroke();ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc(rato.x,rato.y,5,0,7);ctx.fillStyle="#f2b705";ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1.6;ctx.stroke();
+  }
+  var f=fantasma||(armado&&rato.dentro?{tipo:armado.tipo,modelo:armado.modelo,sx:rato.x,sy:rato.y}:null);
+  if(f){
+    var w=chao(f.sx,f.sy),x=Math.round(w[0]),y=Math.round(w[1]),pe=TIPOS[f.tipo].pe,
+        lg=f.tipo==="processo"?ligEm(f.sx,f.sy):null,ok=livre(M,f.tipo,x,y),cor=lg?"#178a5a":ok?"#2c4a6e":"#d23b2a";
+    if(lg){var g=C.lig[lg.id],pts=[];for(i=0;i<20;i++)pts.push([g.k.x+Math.cos(i/20*6.2832)*2.6,g.k.y+Math.sin(i/20*6.2832)*2.6]);fpoly(pts,"rgba(23,138,90,.3)","#178a5a",2);}
+    ctx.globalAlpha=.85;fret([x+pe[0],y+pe[1],x+pe[2],y+pe[3]],ok||lg?"rgba(44,74,110,.2)":"rgba(210,59,42,.22)",cor,2);ctx.globalAlpha=1;
+    p=P(x,y,0);ctx.font=fontD(14,700);ctx.textAlign="center";ctx.textBaseline="middle";
+    halo(lg?"Inserir no meio da ligação":ok?(f.tipo==="processo"?CAT[f.modelo].rotulo:TIPOS[f.tipo].rotulo):"Ocupado: a peça irá para a vaga livre mais próxima",p[0],p[1]-14,cor);
+  }
+}
+
+/* ---- laço principal ---- */
+function frame(now){
+  var dt=Math.min(.05,(now-last)/1000||0);last=now;
+  if(!paused)t+=dt;
+  cam();
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+  var C=calc();
+  ui.sel=sel;
+  desenharChao(M,C,t);
+  var sc=construir(M,C,t);
+  sc.bs.forEach(function(b){ if(b.z<=.31&&b.h>.5){var L=(b.z+b.h)*.42;fpoly([[b.x+b.w,b.y],[b.x+b.w+L,b.y+L*.3],[b.x+b.w+L,b.y+b.d+L*.3],[b.x+b.w,b.y+b.d]],"rgba(24,40,64,.10)");} });
+  sortDraw(sc.bs);desenharFx(sc.fx);desenharRotulos(sc.bl,t);
+  if(ui.edit)desenharEditor(C);
+  requestAnimationFrame(frame);
+}
+
+/* ---- comandos do cabeçalho ---- */
+var bPause=$("bPause"),reduzMov=!!(window.matchMedia&&window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+function setPaused(v){paused=v;bPause.textContent=v?"Continuar":"Pausar";}
+bPause.addEventListener("click",function(){setPaused(!paused);});
+$("bEdit").addEventListener("click",function(){setModo("editar");});
+$("bShow").addEventListener("click",function(){selecionar(null);setModo("apresentar");});
+$("bUndo").addEventListener("click",desfazer);
+$("bRedo").addEventListener("click",refazer);
+$("bIn").addEventListener("click",function(){darZoom(1.25,W/2,H/2);});
+$("bOut").addEventListener("click",function(){darZoom(1/1.25,W/2,H/2);});
+$("bFit").addEventListener("click",enquadrar);
+if(window.ResizeObserver)new ResizeObserver(resize).observe(stage); else window.addEventListener("resize",resize);
+window.addEventListener("beforeunload",function(){clearTimeout(salvarTmr);salvar();});
+
+/* ---- partida ---- */
+M=carregar()||mapaExemplo();
+montarPaleta();
+setModo("editar");
+montarPainel();
+atualizarUI();
+enquadrar();
+if(reduzMov)setPaused(true);
+requestAnimationFrame(frame);
+
+/* gancho para testes e para a próxima fase */
+window.MF={modelo:function(){return M;},calc:calc,tela:function(x,y){cam();return P(x,y,0);},exemplo:mapaExemplo,normalizar:normalizar};
+})();
+</script>
+</body>
+</html>
