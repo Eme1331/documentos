@@ -249,7 +249,7 @@ function mapaVazio(){
 function mapaExemplo(){
   var P=function(id,modelo,x,tc,tr,disp,op){return {id:id,tipo:"processo",modelo:modelo,pos:{x:x,y:22},
     dados:dadosProcesso({tc:tc,tr:tr,disp:disp,op:op,tempoDisp:27600,lote:"1 semana",lotePecas:2300},modelo)};};
-  var L=function(id,a,b,q){return {id:id,origem:a,destino:b,fluxo:"empurrado",estoquePecas:q};};
+  var L=function(id,a,b,q){return {id:id,origem:a,destino:b,fluxo:"empurrado",estoquePecas:q,percentual:100};};
   var I=function(id,a,b,r,f,t){return {id:id,origem:a,destino:b,rotulo:r,frequencia:f,tipo:t};};
   var ex={versao:VERSAO,exemplo:true,
     mapa:{nome:"Suporte metálico SM-200",familia:"Suportes metálicos",clienteFinal:"Linha metalmecânica fictícia, dados de demonstração",data:hoje()},
@@ -293,6 +293,8 @@ function noPorId(M,id){for(var i=0;i<M.nos.length;i++)if(M.nos[i].id===id)return
 function ligPorId(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].id===id)return M.ligacoes[i];return null;}
 function infoPorId(M,id){for(var i=0;i<M.fluxosInfo.length;i++)if(M.fluxosInfo[i].id===id)return M.fluxosInfo[i];return null;}
 function saidaDe(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].origem===id)return M.ligacoes[i];return null;}
+function saidasDe(M,id){return M.ligacoes.filter(function(l){return l.origem===id;});}
+function entradasDe(M,id){return M.ligacoes.filter(function(l){return l.destino===id;});}
 function entradaDe(M,id){for(var i=0;i<M.ligacoes.length;i++)if(M.ligacoes[i].destino===id)return M.ligacoes[i];return null;}
 function areaPorId(M,id){for(var i=0;i<M.areas.length;i++)if(M.areas[i].id===id)return M.areas[i];return null;}
 function novaArea(M,x,y,w,h,nome,cor){
@@ -327,7 +329,7 @@ function posLivre(M,tipo,x,y,ignorar){
   }
   return {x:x,y:y};
 }
-/* regra da fase 1: fluxo linear. Devolve a mensagem de recusa ou null. */
+/* um posto pode ter várias saídas e várias entradas; só ciclos e ligações repetidas são recusados */
 function erroLigacao(M,a,b){
   var A=noPorId(M,a),B=noPorId(M,b);
   if(!A||!B)return "Peça não encontrada.";
@@ -336,9 +338,10 @@ function erroLigacao(M,a,b){
   if(A.tipo==="cliente")return "O cliente é o fim do fluxo: ele só recebe material.";
   if(B.tipo==="fornecedor")return "O fornecedor é o início do fluxo: ele só envia material.";
   if(A.tipo==="fornecedor"&&B.tipo==="cliente")return "Ligue o fornecedor a um posto de trabalho, não direto ao cliente.";
-  if(saidaDe(M,a))return nomeNo(A)+" já tem uma saída. Nesta fase o fluxo é linear, sem ramificação.";
-  if(entradaDe(M,b))return nomeNo(B)+" já tem uma entrada. Nesta fase o fluxo é linear, sem junção de fluxos.";
-  var c=b,g=0; while(c&&g++<500){ if(c===a)return "Esta ligação fecharia um ciclo. O fluxo deve seguir do fornecedor ao cliente."; var l=saidaDe(M,c); c=l?l.destino:null; }
+  if(M.ligacoes.some(function(l){return l.origem===a&&l.destino===b;}))return "Estas duas peças já estão ligadas.";
+  var pilha=[b],vis={},c;
+  while(pilha.length){c=pilha.pop(); if(c===a)return "Esta ligação fecharia um ciclo. O fluxo deve seguir do fornecedor ao cliente."; if(vis[c])continue; vis[c]=1;
+    M.ligacoes.forEach(function(l){ if(l.origem===c)pilha.push(l.destino); });}
   return null;
 }
 function rotuloInfoPadrao(A,B){
@@ -356,24 +359,27 @@ function ligar(M,a,b){
     M.fluxosInfo.push(f); return {sel:{tipo:"info",id:f.id}};
   }
   var e=erroLigacao(M,a,b); if(e)return {erro:e};
-  var l={id:novoId(M,"l"),origem:a,destino:b,fluxo:"empurrado",estoquePecas:0};
-  M.ligacoes.push(l); return {sel:{tipo:"lig",id:l.id}};
+  /* nova saída de um posto que já tem outras: divide o percentual por igual */
+  var irmas=saidasDe(M,a),k=irmas.length;
+  irmas.forEach(function(x){x.percentual=Math.round(x.percentual*k/(k+1)*10)/10;});
+  var l={id:novoId(M,"l"),origem:a,destino:b,fluxo:"empurrado",estoquePecas:0,percentual:k?Math.round(100/(k+1)*10)/10:100};
+  M.ligacoes.push(l); return {sel:{tipo:"lig",id:l.id},dividiu:k>0};
 }
 /* insere um posto sem ligações no meio de uma ligação existente */
 function dividirLigacao(M,ligId,noId){
   var l=ligPorId(M,ligId),n=noPorId(M,noId);
   if(!l||!n||n.tipo!=="processo"||saidaDe(M,noId)||entradaDe(M,noId))return false;
   var destino=l.destino; l.destino=noId;
-  M.ligacoes.push({id:novoId(M,"l"),origem:noId,destino:destino,fluxo:l.fluxo,estoquePecas:0});
+  M.ligacoes.push({id:novoId(M,"l"),origem:noId,destino:destino,fluxo:l.fluxo,estoquePecas:0,percentual:100});
   return true;
 }
 function removerNo(M,id){
-  var e=entradaDe(M,id),s=saidaDe(M,id);
-  if(e&&s){ /* reata os vizinhos */
-    var A=noPorId(M,e.origem),B=noPorId(M,s.destino);
-    if(A.tipo==="fornecedor"&&B.tipo==="cliente")M.ligacoes=M.ligacoes.filter(function(l){return l!==e&&l!==s;});
-    else {e.destino=s.destino;e.estoquePecas+=s.estoquePecas;M.ligacoes=M.ligacoes.filter(function(l){return l!==s;});}
-  } else M.ligacoes=M.ligacoes.filter(function(l){return l!==e&&l!==s;});
+  var es=entradasDe(M,id),ss=saidasDe(M,id),e=es[0],s=ss[0],fora=function(l){return l.origem!==id&&l.destino!==id;};
+  if(es.length===1&&ss.length===1&&!(noPorId(M,e.origem).tipo==="fornecedor"&&noPorId(M,s.destino).tipo==="cliente")
+     &&!M.ligacoes.some(function(l){return l.origem===e.origem&&l.destino===s.destino;})){
+    /* posto de passagem simples: reata os vizinhos */
+    e.destino=s.destino;e.estoquePecas+=s.estoquePecas;M.ligacoes=M.ligacoes.filter(function(l){return l!==s;});
+  } else M.ligacoes=M.ligacoes.filter(fora);
   M.fluxosInfo=M.fluxosInfo.filter(function(f){return f.origem!==id&&f.destino!==id;});
   M.nos=M.nos.filter(function(n){return n.id!==id;});
 }
@@ -425,7 +431,7 @@ function normEstado(M,o){
   (Array.isArray(o.ligacoes)?o.ligacoes:[]).forEach(function(l){
     if(!l||erroLigacao(M,String(l.origem),String(l.destino)))return;
     M.ligacoes.push({id:idOu(M,l.id,"l"),origem:String(l.origem),destino:String(l.destino),
-      fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0))});
+      fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0)),percentual:num(l.percentual,100,0,100)});
   });
   (Array.isArray(o.fluxosInfo)?o.fluxosInfo:[]).forEach(function(i){
     if(!i)return; var a=String(i.origem),b=String(i.destino);
@@ -493,34 +499,67 @@ function unirAreas(areas){
 }
 function calcular(M){
   var C={},by={},sai={},ent={},i,dem=M.cliente.demandaDia;
-  M.nos.forEach(function(n){by[n.id]=n;});
-  M.ligacoes.forEach(function(l){sai[l.origem]=l;ent[l.destino]=l;});
+  M.nos.forEach(function(n){by[n.id]=n;sai[n.id]=[];ent[n.id]=[];});
+  M.ligacoes.forEach(function(l){sai[l.origem].push(l);ent[l.destino].push(l);});
   C.by=by;C.sai=sai;C.ent=ent;
   C.dispDia=M.cliente.turnos*M.cliente.tempoDisponivelMin*60;         /* s/dia */
   C.takt=dem>0?C.dispDia/dem:0;                                       /* takt = tempo disponível / demanda */
 
-  /* cadeias (o fluxo é linear, então cada componente é uma fila) */
-  var cadeias=[];
-  M.nos.forEach(function(n){
-    if(n.tipo==="pcp"||ent[n.id]||!sai[n.id])return;
-    var ns=[n],ls=[],c=n,g=0; while(sai[c.id]&&g++<500){var l=sai[c.id];ls.push(l);c=by[l.destino];ns.push(c);}
-    cadeias.push({nos:ns,ligs:ls});
+  /* ordem do fluxo (topológica): o mapa pode ter ramificações e junções, mas não ciclos */
+  var ordem=[],grau={},fila=[];
+  M.nos.forEach(function(n){grau[n.id]=ent[n.id].length; if(!grau[n.id])fila.push(n);});
+  while(fila.length){var no0=fila.shift();ordem.push(no0);sai[no0.id].forEach(function(l){ if(--grau[l.destino]===0)fila.push(by[l.destino]); });}
+
+  /* parcela da demanda que passa por cada posto e por cada ligação, conforme o percentual de cada saída */
+  C.fracNo={};C.fracLig={};C.pct={};C.diasLig={};
+  M.nos.forEach(function(n){C.fracNo[n.id]=1;});
+  ordem.forEach(function(n){
+    var e=ent[n.id],f=e.length?0:1,tot=0;
+    e.forEach(function(l){f+=C.fracLig[l.id];});
+    C.fracNo[n.id]=f;
+    sai[n.id].forEach(function(l){tot+=l.percentual;});
+    sai[n.id].forEach(function(l){C.pct[l.id]=tot>0?l.percentual/tot:1/sai[n.id].length;C.fracLig[l.id]=f*C.pct[l.id];});
   });
-  var pri=null; cadeias.forEach(function(c){ if(c.nos[0].tipo==="fornecedor")pri=c; });
-  if(!pri)cadeias.forEach(function(c){ if(!pri||c.ligs.length>pri.ligs.length)pri=c; });
+  M.ligacoes.forEach(function(l){
+    var fr=C.fracLig[l.id]==null?1:C.fracLig[l.id],pcs=l.fluxo==="continuo"?0:l.estoquePecas;
+    C.diasLig[l.id]=dem>0&&fr>0?pcs/(dem*fr):0;                      /* dias = peças / demanda diária daquele fluxo */
+  });
+
+  /* caminho crítico: o de maior lead time, de preferência do fornecedor ao cliente */
+  var melhor={};
+  function ganha(c,b){return c.f>b.f||(c.f===b.f&&(c.d>b.d+1e-9||(Math.abs(c.d-b.d)<=1e-9&&c.n>b.n)));}
+  ordem.forEach(function(n){
+    var b={f:n.tipo==="fornecedor"?1:0,d:0,n:0,via:null};
+    ent[n.id].forEach(function(l){var p=melhor[l.origem],c={f:p.f,d:p.d+C.diasLig[l.id],n:p.n+1,via:l}; if(!b.via||ganha(c,b))b=c;});
+    melhor[n.id]=b;
+  });
+  var fim=null,pri=null;
+  M.nos.forEach(function(n){ if(n.tipo==="cliente"&&ent[n.id].length&&melhor[n.id])fim=n; });
+  if(!fim)M.nos.forEach(function(n){var b=melhor[n.id]; if(b&&b.via&&(!fim||ganha(b,melhor[fim.id])))fim=n; });
+  if(fim){pri={nos:[fim],ligs:[]};var cur=fim; while(melhor[cur.id].via){var lv=melhor[cur.id].via;pri.ligs.unshift(lv);cur=by[lv.origem];pri.nos.unshift(cur);}}
   C.cadeia=pri;
   C.completo=!!pri&&pri.nos[0].tipo==="fornecedor"&&pri.nos[pri.nos.length-1].tipo==="cliente";
+  C.ramificado=M.nos.some(function(n){return sai[n.id].length>1||ent[n.id].length>1;});
 
   /* cor da peça ao longo do fluxo */
   C.corIn={};C.corOut={};var corLig={};
-  cadeias.forEach(function(c){var cor=CRU;
-    c.nos.forEach(function(n,k){ C.corIn[n.id]=cor; if(n.tipo==="processo"&&CAT[n.modelo].saida)cor=CAT[n.modelo].saida; C.corOut[n.id]=cor; if(c.ligs[k])corLig[c.ligs[k].id]=cor; });});
-  M.nos.forEach(function(n){ if(!C.corIn[n.id]){C.corIn[n.id]=CRU;C.corOut[n.id]=(n.tipo==="processo"&&CAT[n.modelo].saida)||CRU;} });
+  M.nos.forEach(function(n){C.corIn[n.id]=CRU;C.corOut[n.id]=(n.tipo==="processo"&&CAT[n.modelo].saida)||CRU;});
+  ordem.forEach(function(n){
+    var ci=ent[n.id].length?C.corOut[ent[n.id][0].origem]:CRU;
+    C.corIn[n.id]=ci;C.corOut[n.id]=(n.tipo==="processo"&&CAT[n.modelo].saida)||ci;
+    sai[n.id].forEach(function(l){corLig[l.id]=C.corOut[n.id];});
+  });
 
-  /* gargalos: T/C acima do takt */
-  C.gargalo={};C.gargalos=[];C.puxador=null;
+  /* produção, ocupação e gargalos: T/C acima do takt do posto (takt dividido pela parcela do fluxo) */
+  C.prod={};C.ocup={};C.taktNo={};C.gargalo={};C.gargalos=[];C.puxador=null;
   M.nos.forEach(function(n){ if(n.puxador&&!C.puxador)C.puxador=n; });
-  M.nos.forEach(function(n){ if(n.tipo==="processo"&&C.takt>0&&n.dados.tc>C.takt+1e-9){C.gargalo[n.id]=true;C.gargalos.push(n);} });
+  M.nos.forEach(function(n){
+    if(n.tipo!=="processo")return;
+    var p=C.prod[n.id]=producao(n.dados),fr=C.fracNo[n.id];
+    C.ocup[n.id]=p.capDia>0?dem*fr/p.capDia*100:0;                    /* ocupação = peças necessárias por dia / capacidade diária */
+    C.taktNo[n.id]=fr>0?C.takt/fr:0;
+    if(C.takt>0&&fr>0&&n.dados.tc>C.taktNo[n.id]+1e-9){C.gargalo[n.id]=true;C.gargalos.push(n);}
+  });
 
   /* geometria das ligações: o estoque pertence à ligação */
   var bb=[1e9,1e9,-1e9,-1e9];
@@ -528,21 +567,21 @@ function calcular(M){
   M.nos.forEach(function(n){var r=retNo(n);inc(r[0],r[1]);inc(r[2],r[3]);});
   (M.areas||[]).forEach(function(a){inc(a.x,a.y);inc(a.x+a.w,a.y+a.h);});
   C.layout=unirAreas(M.areas||[]);
-  C.prod={};M.nos.forEach(function(n){ if(n.tipo==="processo")C.prod[n.id]=producao(n.dados); });
   C.lig={};
   M.ligacoes.forEach(function(l){
     var A=by[l.origem],B=by[l.destino],g={id:l.id,cor:corLig[l.id]||CRU,seta:null,rota:null},u,Q,v,d;
     g.tipo=l.fluxo; g.pecas=l.fluxo==="continuo"?0:l.estoquePecas;    /* fluxo contínuo não tem estoque */
-    g.dias=dem>0?g.pecas/dem:0;                                       /* dias = peças / demanda diária */
+    g.dias=C.diasLig[l.id];
+    if(sai[A.id].length>1)g.rotPct=n1(C.pct[l.id]*100)+"%";
     g.nCx=g.pecas>0?Math.max(1,Math.min(g.tipo==="fifo"?3:20,Math.round((dem>0?g.dias:1)*2))):0;
     g.topo=g.tipo==="continuo"?.9:g.tipo==="fifo"?(g.nCx?1.05:.15):.2+Math.ceil(g.nCx/4)*.95;
     if(A.tipo==="fornecedor"){
-      v=sai[B.id];Q=v&&by[v.destino];
+      v=sai[B.id][0];Q=v&&by[v.destino];
       u=Q&&Q.tipo==="processo"?unit(B.pos.x-Q.pos.x,B.pos.y-Q.pos.y):[-1,0];
       g.k={x:B.pos.x+u[0]*6,y:B.pos.y+u[1]*6}; g.n=normalFrente(u); g.d=[-u[0],-u[1]];
       g.rota=rotaCaminhao(A.pos,g.k); g.corCam="#2f6fb5"; g.fase=0; g.periodo=16;
     } else if(B.tipo==="cliente"){
-      v=ent[A.id];Q=v&&by[v.origem];
+      v=ent[A.id][0];Q=v&&by[v.origem];
       u=Q&&Q.tipo==="processo"?unit(A.pos.x-Q.pos.x,A.pos.y-Q.pos.y):[1,0];
       g.k={x:A.pos.x+u[0]*6,y:A.pos.y+u[1]*6}; g.n=normalFrente(u); g.d=u;
       g.rota=rotaCaminhao(B.pos,g.k).slice().reverse(); g.corCam="#d9542b"; g.fase=.45; g.periodo=14;
@@ -845,6 +884,13 @@ function construir(M,C,t){
       R(1.4,-2.3,3.1,.35,.35,.4,s.act?"#39c46f":"#3b4654");
     }
   };
+  /* com várias entradas ou saídas, cada ciclo usa uma ligação, na proporção do fluxo de cada uma */
+  function sortear(ls,k){
+    if(!ls.length)return null; if(ls.length===1)return C.lig[ls[0].id];
+    var tot=0,i;for(i=0;i<ls.length;i++)tot+=C.fracLig[ls[i].id]||0;
+    var r=rnd(k)*tot;for(i=0;i<ls.length;i++){r-=C.fracLig[ls[i].id]||0; if(r<=0)return C.lig[ls[i].id];}
+    return C.lig[ls[0].id];
+  }
   var VAGAS1=[[0,0]],VAGAS=[[0,-.7],[0,1.6],[0,2.8],[0,-1.8]];
 
   M.nos.forEach(function(no,idx){
@@ -861,7 +907,7 @@ function construir(M,C,t){
     function R(dx,dy,z,w,dd,h,col){B(p.x+dx,p.y+dy,z,w,dd,h,col);}
     R(-3.2,-3.7,0,6.6,7,.3,mixHex(c,"#ffffff",gar?.5:.72));
     /* peça: sai do estoque de entrada, é processada e segue para o estoque de saída */
-    var le=C.ent[no.id]&&C.lig[C.ent[no.id].id],ls=C.sai[no.id]&&C.lig[C.sai[no.id].id],ci=C.corIn[no.id],co=C.corOut[no.id],u,s,g=null,x,y,z;
+    var ciclo=Math.floor(t/T+idx*.37),le=sortear(C.ent[no.id],ciclo),ls=sortear(C.sai[no.id],ciclo+7),ci=C.corIn[no.id],co=C.corOut[no.id],u,s,g=null,x,y,z;
     var pc=ph<=.22?ci:ph>=.78?co:(ci===co?ci:mixHex(ci,co,Math.round(a*12)/12));
     if(ph<=.22){g=le;u=ph/.22; if(g){s=Math.sin(Math.PI*u);x=lerp(g.k.x,p.x,u)+g.n[0]*3.2*s;y=lerp(g.k.y,p.y,u)+g.n[1]*3.2*s;z=lerp(g.topo,tz,u)+2*s;}}
     else if(ph<.78){g=1;x=p.x;y=p.y;z=tz;}
@@ -872,13 +918,13 @@ function construir(M,C,t){
     for(var q=0;q<nOp;q++)operador(p.x+cat.wx,p.y+vg[q][1],.3,c,cat.acena&&act,q*1.5);
 
     var grid=[["T/C",n1(d.tc)+" s",gar],["T/R",n1(d.tr)+" min"],["Disp",n1(d.disp)+"%"],["Op",String(d.op)],
-      ["T. disp",mil(d.tempoDisp)+" s"],["TPT",d.lote||"—"],["Pç/op/h",n1(C.prod[no.id].pcOpHora)]];
+      ["T. disp",mil(d.tempoDisp)+" s"],["TPT",d.lote||"—"],["Pç/op/h",n1(C.prod[no.id].pcOpHora)],["Ocup.",Math.round(C.ocup[no.id])+"%",C.ocup[no.id]>100.05]];
     if(d.refugo!=null&&d.refugo>0)grid.push(["Refugo",n1(d.refugo)+"%"]);
     /* base: altura do balão em unidades de tela; zero quando os balões estão ocultos */
     var base=ui.baloes?2+Math.ceil(grid.length/2)*1.3:0;
-    if(ui.baloes)bl.push({k:"card",no:no.id,x:p.x,y:p.y-2.8,z:5.7,t:d.nome.toUpperCase(),c:c,grid:grid});
+    if(ui.baloes)bl.push({k:"card",no:no.id,x:p.x,y:p.y-2.8,z:5.7,t:d.nome.toUpperCase(),c:c,grid:grid,bg:gar?"#fbd9d3":null,borda:gar?"#8f2317":null});
     if(no.puxador)bl.push({k:"pill",x:p.x,y:p.y-2.8,z:5.7,up:base+1.1,txt:"PROCESSO PUXADOR",c:VERDE,fill:1});
-    if(gar)bl.push({k:"burst",x:p.x,y:p.y-2.8,z:5.7,base:base+(no.puxador?1.7:0),txt:"T/C "+n1(d.tc)+" s > takt "+n1(C.takt)+" s"});
+    if(gar)bl.push({k:"burst",x:p.x,y:p.y-2.8,z:5.7,base:base+(no.puxador?1.7:0),txt:"T/C "+n1(d.tc)+" s > takt "+n1(C.taktNo[no.id])+" s"});
     if(d.kaizen)bl.push({k:"kaizen",x:p.x,y:p.y-2.8,z:5.7,base:base,txt:d.kaizen});
   });
 
@@ -900,6 +946,8 @@ function construir(M,C,t){
       for(q=0;q<g.nCx;q++)B(k.x-1.06+(q%2)*1.08,k.y-1.06+((q>>1)%2)*1.08,.2+(q>>2)*.95,1,1,.9,g.cor);
       bl.push({k:sup?"sup":"tri",x:k.x,y:k.y,z:g.topo+(sup?1.7:1),q:g.pecas,d:g.dias,sem:sem});
     }
+    if(g.rotPct){var pp=g.seta?[lerp(g.seta.a[0],g.seta.b[0],.22),lerp(g.seta.a[1],g.seta.b[1],.22)]:[k.x,k.y+2.2];
+      bl.push({k:"pill",x:pp[0],y:pp[1],z:.3,txt:g.rotPct,c:INK,fill:1});}
     if(g.rota)caminhao(g.rota,viagem((t/g.periodo+g.fase)%1),g.corCam);
     var ss=g.seta&&somaSeta[g.tipo];
     if(ss){ss[0]+=(g.seta.a[0]+g.seta.b[0])/2;ss[1]+=(g.seta.a[1]+g.seta.b[1])/2;ss[2]++;}
@@ -1006,14 +1054,14 @@ function desenharRotulos(bl,t){
       if(b.no)ui.rets[b.no]=[x0,y0,w,h];
       ctx.strokeStyle="rgba(24,33,45,.4)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+1.5*u);ctx.stroke();
       ctx.fillStyle="rgba(24,33,45,.18)";rr(x0+.25*u,y0+.3*u,w,h,2);ctx.fill();
-      ctx.fillStyle="#fff";rr(x0,y0,w,h,2);ctx.fill();
+      ctx.fillStyle=b.bg||"#fff";rr(x0,y0,w,h,2);ctx.fill();
       ctx.fillStyle=b.c;ctx.fillRect(x0,y0,w,th);
-      ctx.strokeStyle=INK;ctx.lineWidth=1.2;rr(x0,y0,w,h,2);ctx.stroke();
+      ctx.strokeStyle=b.borda||INK;ctx.lineWidth=b.borda?2:1.2;rr(x0,y0,w,h,2);ctx.stroke();
       ctx.font=fontD(1.08*u,700);ctx.textAlign="center";ctx.fillStyle="#fff";ctx.fillText(b.t,x,y0+th/2+.04*u,w-.6*u);
       if(b.one){ctx.font=fontB(.84*u,600);ctx.textAlign="center";ctx.fillStyle=INK;ctx.fillText(b.one,x,y0+th+.3*u+rh*.5);}
       var cells=b.grid||b.rows||[],cw=b.grid?w/2:w;
       for(var r=0;r<cells.length;r++){var row=cells[r],cx0=b.grid?x0+(r%2)*cw:x0,ry=y0+th+.3*u+rh*((b.grid?(r>>1):r)+.5);
-        if(row[2]){ctx.fillStyle="rgba(210,59,42,.16)";ctx.fillRect(cx0+1,ry-rh/2,cw-2,rh);}
+        if(row[2]){ctx.fillStyle=b.bg?"rgba(210,59,42,.34)":"rgba(210,59,42,.16)";ctx.fillRect(cx0+1,ry-rh/2,cw-2,rh);}
         ctx.font=fontB((b.grid?.72:.8)*u,500);ctx.textAlign="left";ctx.fillStyle="#5b6878";ctx.fillText(row[0],cx0+.35*u,ry);
         var lw=ctx.measureText(row[0]).width;
         ctx.font=fontD((b.grid?.98:1.02)*u,700);ctx.textAlign="right";ctx.fillStyle=row[2]?"#d23b2a":INK;ctx.fillText(row[1],cx0+cw-.35*u,ry,Math.max(u,cw-lw-1*u));
@@ -1163,7 +1211,7 @@ function atualizarUI(){
       s+="Lead time de "+nf(CA.lead,1)+" para "+nf(C.lead,1)+" dias"+(CA.lead>0?" ("+(C.lead<=CA.lead?"−":"+")+Math.abs(Math.round((1-C.lead/CA.lead)*100))+"%)":"")+", com "+n1(C.tav)+" s de agregação de valor. ";
       s+=C.puxador?"Puxador: "+esc(C.puxador.dados.nome)+". ":"Ainda sem processo puxador. ";
     }
-    else s+="Do fornecedor ao cliente, "+nf(C.lead,1)+" dias de estoque para "+n1(C.tav)+" s de agregação de valor. ";
+    else s+=(C.ramificado?"Pelo caminho mais longo, ":"Do fornecedor ao cliente, ")+nf(C.lead,1)+" dias de estoque para "+n1(C.tav)+" s de agregação de valor. ";
     if(C.gargalos.length)s+="<em>Gargalo: "+C.gargalos.map(function(n){return esc(n.dados.nome)+" (T/C "+n1(n.dados.tc)+" s)";}).join(", ")+", acima do takt.</em>";
     else if(C.completo)s+="Nenhum processo acima do takt.";
   }
@@ -1274,6 +1322,7 @@ function tentarLigar(a,b){
   r=ligar(M,a,b);
   if(r.erro){avisar(r.erro,true);return;}
   pilhaU.push(antes);pilhaR.length=0;ultChave=null;alterou();selecionar(r.sel);
+  if(r.dividiu)avisar(nomeNo(noPorId(M,a))+" agora tem mais de uma saída. Ajuste o percentual de cada fluxo no painel.");
 }
 function trocarMapa(novo,msg){
   acao(function(){D=novo;vendo="atual";atualizarVista();});
@@ -1395,7 +1444,7 @@ function guia(M,C){
       emp=M.ligacoes.filter(function(l){return l.fluxo==="empurrado";}).length,
       sup=M.ligacoes.filter(function(l){return l.fluxo==="supermercado";}).length,
       cont=entreP.filter(function(l){return l.fluxo==="continuo"||l.fluxo==="fifo";}).length,
-      cli=noDoTipo(M,"cliente"),le=cli&&C.ent[cli.id],pcp=noDoTipo(M,"pcp"),px=C.puxador,r=[];
+      cli=noDoTipo(M,"cliente"),le=cli&&C.ent[cli.id][0],pcp=noDoTipo(M,"pcp"),px=C.puxador,r=[];
   r.push({q:"1. Qual é o takt?",ok:C.takt>0&&!C.gargalos.length,
     t:C.takt<=0?"Informe a demanda do cliente.":"Takt de "+n1(C.takt)+" s. "+(C.gargalos.length?"Acima do takt: "+C.gargalos.map(function(n){return n.dados.nome;}).join(", ")+". Registre o kaizen e o novo T/C.":"Todos os processos dentro do takt.")});
   r.push({q:"2. Supermercado de acabados ou expedição direta?",ok:!!le&&le.fluxo!=="empurrado",
@@ -1408,7 +1457,9 @@ function guia(M,C){
   if(!px)t5="Selecione um processo e marque Processo puxador.";
   else {
     var outros=M.fluxosInfo.filter(function(f){return pcp&&f.origem===pcp.id&&ehP(f.destino)&&f.destino!==px.id;}).length,ruim=0,c=px.id,g=0,l;
-    while((l=C.sai[c])&&g++<500){ if(ehP(l.destino)&&(l.fluxo==="supermercado"||l.fluxo==="empurrado"))ruim++; c=l.destino; }
+    var pilha=[c],vis={};
+    while(pilha.length){c=pilha.pop(); if(vis[c])continue; vis[c]=1;
+      C.sai[c].forEach(function(l){ if(ehP(l.destino)&&(l.fluxo==="supermercado"||l.fluxo==="empurrado"))ruim++; pilha.push(l.destino); });}
     ok5=!outros&&!ruim;
     t5="Puxador: "+px.dados.nome+". "+(outros?outros+" outro(s) processo(s) ainda recebe(m) programação do PCP: exclua essas setas. ":"")+(ruim?"Depois do puxador o fluxo deve ser contínuo ou FIFO até o cliente.":"")+(ok5?"Só ele recebe a programação.":"");
   }
@@ -1463,10 +1514,12 @@ function painelProcesso(sec,no){
   }
   var lt=el("p",{class:"leit"});sec.appendChild(lt);
   leitura=function(){var C=calc(),n=noPorId(M,no.id); if(!n)return;
+    var tk=C.taktNo[n.id],fr=C.fracNo[n.id],parc=Math.abs(fr-1)>1e-6?" (o posto recebe "+n1(fr*100)+"% do fluxo)":"";
     if(C.takt<=0){lt.className="leit";lt.textContent="Informe a demanda do cliente para comparar o T/C com o takt.";}
-    else if(C.gargalo[n.id]){lt.className="leit bad";lt.textContent="Gargalo: T/C de "+n1(n.dados.tc)+" s acima do takt de "+n1(C.takt)+" s.";}
-    else {lt.className="leit";lt.textContent="T/C de "+n1(n.dados.tc)+" s dentro do takt de "+n1(C.takt)+" s.";}
-    lp.textContent=textoProducao(n.dados);};
+    else if(C.gargalo[n.id]){lt.className="leit bad";lt.textContent="Gargalo: T/C de "+n1(n.dados.tc)+" s acima do takt de "+n1(tk)+" s"+parc+".";}
+    else {lt.className="leit";lt.textContent="T/C de "+n1(n.dados.tc)+" s dentro do takt de "+n1(tk)+" s"+parc+".";}
+    lp.className="leit"+(C.ocup[n.id]>100.05?" bad":"");
+    lp.textContent="Ocupação: "+Math.round(C.ocup[n.id])+"% ("+mil(M.cliente.demandaDia*fr)+" peças/dia necessárias). "+textoProducao(n.dados);};
   var lp=el("p",{class:"leit"});sec.appendChild(lp);
   botoes(sec,[["Duplicar",duplicarSelecao],["Excluir",excluirSelecao,"perigo"]]);
 }
@@ -1524,12 +1577,15 @@ function painelPcp(sec,no){
 function painelLigacao(sec,l){
   sec.appendChild(el("h2",{text:"Ligação e estoque"}));
   sec.appendChild(el("p",{class:"nota",text:nomeNo(noPorId(M,l.origem))+" → "+nomeNo(noPorId(M,l.destino))}));
+  if(saidasDe(M,l.origem).length>1)campo(sec,"Percentual da saída de "+nomeNo(noPorId(M,l.origem))+" (%)",l.percentual,{tipo:"number",min:0,max:100},function(v){l.percentual=v;});
   escolha(sec,"Tipo de fluxo",l.fluxo,Object.keys(FLUXOS).map(function(k){return [k,FLUXOS[k].rotulo];}),function(v){acao(function(){l.fluxo=v;});montarPainel();});
   if(l.fluxo!=="continuo")campo(sec,l.fluxo==="fifo"?"Máximo na pista FIFO (peças)":l.fluxo==="supermercado"?"Supermercado (peças)":"Estoque (peças)",l.estoquePecas,{tipo:"number",min:0,step:1,inteiro:true},function(v){l.estoquePecas=v;});
   var lt=el("p",{class:"leit"});sec.appendChild(lt);
   leitura=function(){var x=ligPorId(M,l.id); if(!x)return; var C=calc();
-    lt.textContent=x.fluxo==="continuo"?"Fluxo contínuo: a peça passa direto ao processo seguinte, sem estoque.":M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia)+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
-      :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.";};
+    var irm=saidasDe(M,x.origem),som=0,div="";irm.forEach(function(o){som+=o.percentual;});
+    if(irm.length>1)div=" Saídas de "+nomeNo(noPorId(M,x.origem))+": "+irm.map(function(o){return n1(C.pct[o.id]*100)+"% para "+nomeNo(noPorId(M,o.destino));}).join(", ")+"."+(Math.abs(som-100)>.05?" Os percentuais somam "+n1(som)+"% e foram ajustados na proporção para 100%.":"");
+    lt.textContent=(x.fluxo==="continuo"?"Fluxo contínuo: a peça passa direto ao processo seguinte, sem estoque.":M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia*(C.fracLig[x.id]==null?1:C.fracLig[x.id]))+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
+      :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.")+div;};
   botoes(sec,[["Excluir ligação",excluirSelecao,"perigo"]]);
 }
 function painelInfo(sec,f){
