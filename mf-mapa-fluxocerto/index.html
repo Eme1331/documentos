@@ -62,6 +62,12 @@ body.apresentar .pal,body.apresentar .side,body.apresentar .soEd{display:none}
 .pc{display:flex;align-items:center;gap:7px;width:100%;text-align:left;font-size:14px;padding:2px 6px;border-width:1.5px;touch-action:none;user-select:none;cursor:grab}
 .pc i{flex:none;width:13px;height:13px;border-radius:2px;border:1px solid rgba(24,33,45,.5)}
 .pc[aria-pressed="true"]{background:var(--ink);color:var(--accent)}
+.pf{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.pf[hidden]{display:none}
+.pf .pc{flex-direction:column;gap:1px;align-items:center;text-align:center;font-size:12px;line-height:1.1;padding:3px 2px;letter-spacing:.2px}
+.pf .pc svg{width:30px;height:18px;flex:none}
+.pc.ir{justify-content:center;background:var(--ink);color:var(--accent);cursor:pointer}
+.pc.ir[hidden]{display:none}
 .pal p{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.35}
 .side{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .side .sec{display:flex;flex-direction:column;gap:7px}
@@ -139,6 +145,7 @@ dialog .btns{margin-top:10px;justify-content:flex-end}
       <button id="bOut" aria-label="Diminuir zoom">−</button>
       <button id="bIn" aria-label="Aumentar zoom">+</button>
       <button id="bFit" title="Enquadrar o mapa inteiro">Enquadrar</button>
+      <button id="bJan" title="Abrir o mapa em uma janela separada, para projetar ou usar em outro monitor">Nova janela</button>
       <select id="selVista" class="sv" aria-label="Vista da câmera" title="Vista da câmera">
         <option value="superior">Vista superior</option><option value="inclinada">Vista inclinada</option>
         <option value="isometrica">Vista isométrica</option><option value="livre">Câmera livre</option>
@@ -222,7 +229,8 @@ var TIPOS={
 /* tipos de fluxo de material entre processos */
 var FLUXOS={empurrado:{rotulo:"Empurrado"},supermercado:{rotulo:"Puxado com supermercado (kanban)"},fifo:{rotulo:"FIFO (primeiro a entrar, primeiro a sair)"},continuo:{rotulo:"Fluxo contínuo (sem estoque)"}};
 var VERDE="#178a5a";
-var TIPOS_INFO={eletronica:"Eletrônica",manual:"Manual"};
+var TIPOS_INFO={eletronica:"Eletrônica",manual:"Manual",kanban_retirada:"Kanban de retirada",kanban_producao:"Kanban de produção",kanban_sinalizacao:"Kanban de sinalização",va_ver:"Programação \"vá ver\""};
+function ehKanban(t){return t==="kanban_retirada"||t==="kanban_producao"||t==="kanban_sinalizacao";}
 
 function num(v,def,min,max){
   var n=typeof v==="number"?v:parseFloat(String(v==null?"":v).replace(",","."));
@@ -431,7 +439,7 @@ function normEstado(M,o){
   (Array.isArray(o.ligacoes)?o.ligacoes:[]).forEach(function(l){
     if(!l||erroLigacao(M,String(l.origem),String(l.destino)))return;
     M.ligacoes.push({id:idOu(M,l.id,"l"),origem:String(l.origem),destino:String(l.destino),
-      fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0)),percentual:num(l.percentual,100,0,100)});
+      fluxo:FLUXOS[l.fluxo]?l.fluxo:"empurrado",estoquePecas:Math.round(num(l.estoquePecas,0,0)),percentual:num(l.percentual,100,0,100),pecasKanban:(l.pecasKanban==null||l.pecasKanban==="")?null:num(l.pecasKanban,0,0)});
   });
   (Array.isArray(o.fluxosInfo)?o.fluxosInfo:[]).forEach(function(i){
     if(!i)return; var a=String(i.origem),b=String(i.destino);
@@ -615,7 +623,7 @@ function calcular(M){
   Object.keys(pares).forEach(function(k){
     var lst=pares[k],ids=k.split("|"),A=by[ids[0]],B=by[ids[1]],d0=unit(B.pos.x-A.pos.x,B.pos.y-A.pos.y),n0=[-d0[1],d0[0]];
     lst.forEach(function(f,j){
-      var O=by[f.origem],D=by[f.destino],dd=f.origem===ids[0]?d0:[-d0[0],-d0[1]],off=(j-(lst.length-1)/2)*2.4,
+      var O=by[f.origem],D=by[f.destino],dd=f.origem===ids[0]?d0:[-d0[0],-d0[1]],off=(j-(lst.length-1)/2)*2.4+(A.tipo!=="pcp"&&B.tipo!=="pcp"?(n0[1]>1e-6||(Math.abs(n0[1])<=1e-6&&n0[0]>0)?-5.4:5.4):0),
           tO=ateBorda(TIPOS[O.tipo].pe,dd)+.5,tD=ateBorda(TIPOS[D.tipo].pe,[-dd[0],-dd[1]])+.7,
           a=[O.pos.x+dd[0]*tO+n0[0]*off,O.pos.y+dd[1]*tO+n0[1]*off],b=[D.pos.x-dd[0]*tD+n0[0]*off,D.pos.y-dd[1]*tD+n0[1]*off],
           len=(b[0]-a[0])*dd[0]+(b[1]-a[1])*dd[1],fr=lst.length>1?.3+.4*j/(lst.length-1):.5,g={id:f.id,pts:null};
@@ -624,8 +632,9 @@ function calcular(M){
     });
   });
   /* um rótulo por grupo de setas iguais saindo da mesma origem */
-  C.rotInfo=[];var grupos={};
+  C.rotInfo=[];C.icoInfo=[];var grupos={};
   M.fluxosInfo.forEach(function(f){var g=C.info[f.id]; if(!g.pts)return;
+    if(f.tipo!=="eletronica"&&f.tipo!=="manual")C.icoInfo.push({t:f.tipo,x:g.rot[0],y:g.rot[1]});
     var t=f.rotulo+(f.rotulo&&f.frequencia?" ":"")+f.frequencia; if(!t)return;
     var k=f.origem+"|"+t,o=grupos[k]; if(!o){o=grupos[k]={t:t,x:0,y:0,n:0};C.rotInfo.push(o);} o.x+=g.rot[0];o.y+=g.rot[1];o.n++;});
   C.rotInfo.forEach(function(o){o.x/=o.n;o.y/=o.n;});
@@ -973,6 +982,7 @@ function construir(M,C,t){
   (M.areas||[]).forEach(function(a){ if(a.nome)bl.push({k:"area",x:a.x+a.w/2,y:a.y+1.3,z:0,txt:a.nome.toUpperCase(),c:CORES_AREA[a.cor][1]}); });
   /* rótulos dos fluxos de informação */
   C.rotInfo.forEach(function(o){bl.push({k:"pill",x:o.x,y:o.y,z:.4,txt:o.t,c:AZUL});});
+  C.icoInfo.forEach(function(o){bl.push({k:"ico",x:o.x,y:o.y,z:.4,t:o.t});});
   return {bs:bs,fx:fx,bl:bl};
 }
 
@@ -1024,7 +1034,7 @@ function desenharChao(M,C,t){
     });
   }
   /* informação */
-  M.fluxosInfo.forEach(function(f,k){var g=C.info[f.id]; if(g.pts)floorPath(g.pts,AZUL,1,false,t+k*.3,f.tipo==="eletronica"?.2:.3,true);});
+  M.fluxosInfo.forEach(function(f,k){var g=C.info[f.id]; if(g.pts)floorPath(g.pts,ehKanban(f.tipo)?VERDE:AZUL,1,ehKanban(f.tipo),t+k*.3,f.tipo==="eletronica"?.2:.3,true);});
   /* setas de fluxo de material */
   M.ligacoes.forEach(function(l,k){var g=C.lig[l.id]; if(!g.seta)return;
     if(g.tipo==="empurrado")setaEmpurrada(g.seta,t);
@@ -1073,6 +1083,20 @@ function desenharRotulos(bl,t){
       ctx.font=fontD(1.15*u,700);ctx.textAlign="center";ctx.fillStyle=INK;ctx.fillText("I",x,y-a*.6);
       ctx.font=fontD(1.15*u,700);halo(b.sem?"— d":nf(b.d,1)+" d",x,y-a*1.75-1.55*u,INK);
       ctx.font=fontB(.82*u,600);halo(mil(b.q)+" pç",x,y-a*1.75-.55*u,"#5b6878");
+    } else if(b.k==="ico"){ /* ícones do livro para kanban e "vá ver" */
+      var iw=1.5*u,ih=1.05*u;ctx.lineWidth=Math.max(1.5,.16*u);ctx.lineJoin="miter";
+      if(b.t==="va_ver"){
+        ctx.fillStyle="#fff";ctx.strokeStyle=AZUL;
+        [-.55,.55].forEach(function(o){ctx.beginPath();ctx.arc(x+o*u,y,.42*u,0,7);ctx.fill();ctx.stroke();});
+        ctx.beginPath();ctx.moveTo(x-.13*u,y);ctx.lineTo(x+.13*u,y);ctx.moveTo(x+.97*u,y);ctx.lineTo(x+1.3*u,y-.7*u);ctx.stroke();
+      } else if(b.t==="kanban_sinalizacao"){
+        poly([[x-iw*.7,y-ih*.75],[x+iw*.7,y-ih*.75],[x,y+ih*.75]],"#fff",VERDE,ctx.lineWidth);
+      } else {
+        var cp=[[x-iw/2,y-ih/2],[x+iw/2-.4*u,y-ih/2],[x+iw/2,y-ih/2+.4*u],[x+iw/2,y+ih/2],[x-iw/2,y+ih/2]];
+        poly(cp,"#fff",VERDE,ctx.lineWidth);
+        if(b.t==="kanban_retirada"){ctx.save();ctx.beginPath();cp.forEach(function(q,qi){ if(qi)ctx.lineTo(q[0],q[1]); else ctx.moveTo(q[0],q[1]);});ctx.closePath();ctx.clip();
+          ctx.lineWidth=Math.max(1,.1*u);ctx.beginPath();for(var hx=-3;hx<4;hx++){ctx.moveTo(x+hx*.32*u-ih/2,y+ih/2);ctx.lineTo(x+hx*.32*u+ih/2,y-ih/2);}ctx.stroke();ctx.restore();}
+      }
     } else if(b.k==="area"){
       ctx.font=fontD(1.2*u,700);ctx.textAlign="center";halo(b.txt,x,y,b.c);
     } else if(b.k==="txt"){
@@ -1145,11 +1169,27 @@ function setEstado(v){
     acao(function(){D.futuro=estadoFuturoDe(D);});
     avisar("Estado futuro criado como cópia do atual. Siga as questões do painel ao lado.");
   }
+  try{ if(!espelho)localStorage.setItem(CHAVE+".estado",v);}catch(e){}
   fecharPop();vendo=v;sel=null;arr=null;atualizarVista();rev++;montarPainel();atualizarUI();
 }
 
 /* ---- persistência ---- */
+/* janela separada: abre o mesmo mapa em modo Apresentar e acompanha as edições da janela principal */
+var espelho=location.hash==="#apresentar";
+function abrirJanela(){
+  clearTimeout(salvarTmr);salvar();
+  try{localStorage.setItem(CHAVE+".estado",vendo);}catch(e){}
+  var w=null;try{w=window.open(location.href.split("#")[0]+"#apresentar","mfv_apresentar","popup=yes,width=1360,height=800");}catch(e){}
+  if(!w)avisar("O navegador bloqueou a nova janela. Permita pop-ups para esta página, ou abra o arquivo index.html em outra janela.",true);
+  else avisar("Mapa aberto em outra janela. O que você editar aqui aparece lá.");
+}
+window.addEventListener("storage",function(e){
+  if(!espelho||modo==="editar")return;
+  if(e.key===CHAVE&&e.newValue){try{D=normalizar(JSON.parse(e.newValue));}catch(x){return;} atualizarVista();rev++;atualizarUI();}
+  if(e.key===CHAVE+".estado"&&e.newValue&&(e.newValue==="atual"||D.futuro))setEstado(e.newValue);
+});
 function salvar(){
+  if(espelho&&modo!=="editar")return;
   try{localStorage.setItem(CHAVE,JSON.stringify(D));}
   catch(e){ if(!avisouSalvar){avisouSalvar=true;avisar("Não foi possível salvar no navegador. Use Copiar mapa (JSON) para guardar o trabalho.",true);} }
 }
@@ -1220,6 +1260,8 @@ function atualizarUI(){
   Array.prototype.forEach.call(palEl.querySelectorAll(".pc"),function(b){
     var tp=b.dataset.tipo; b.disabled=tp!=="processo"&&!!noDoTipo(M,tp);
   });
+  var fu=vendo==="futuro";
+  if($("palFut")){$("palFut").hidden=!fu;$("palFutT").hidden=!fu;$("palIr").hidden=fu;}
   if(leitura)leitura();
 }
 
@@ -1318,6 +1360,11 @@ function inserir(d,wx,wy,lig){
   if(dividiu)avisar(no.dados.nome+" inserido no meio da ligação. A linha do tempo foi atualizada.");
 }
 function tentarLigar(a,b){
+  if(ferrInfo){
+    var tp=ferrInfo,nf2;ferrInfo=null;dicaPadrao();
+    acao(function(){nf2={id:novoId(M,"i"),origem:a,destino:b,rotulo:"",frequencia:"",tipo:tp};M.fluxosInfo.push(nf2);});
+    selecionar({tipo:"info",id:nf2.id});return;
+  }
   var r,antes=JSON.stringify(D);
   r=ligar(M,a,b);
   if(r.erro){avisar(r.erro,true);return;}
@@ -1332,9 +1379,7 @@ function setModo(m){
   fecharPop();modo=m;ui.edit=m==="editar";arr=null;armado=null;fantasma=null;marcarPaleta();
   document.body.classList.toggle("apresentar",m!=="editar");
   $("bEdit").setAttribute("aria-pressed",String(m==="editar"));$("bShow").setAttribute("aria-pressed",String(m!=="editar"));
-  $("hint").textContent=m==="editar"
-    ?"Arraste peças da paleta. Ponto amarelo liga uma peça a outra. Clique no balão ou dê dois cliques no posto para digitar os dados."
-    :"Arraste para mover a cena";
+  ferrInfo=null;dicaPadrao();
   if(m!=="editar"&&paused&&!reduzMov)setPaused(false);
   resize();
 }
@@ -1351,11 +1396,47 @@ function marcarPaleta(){
     b.setAttribute("aria-pressed",String(!!armado&&armado.tipo===b.dataset.tipo&&(armado.modelo||"")===(b.dataset.modelo||"")));});
   cv.style.cursor=armado?"copy":"";
 }
+var alvoPal=palEl,ferrInfo=null;
+/* alvo: lig = soltar sobre uma ligação; no = sobre um posto; par = arrastar de uma peça até outra; livre = vale para o mapa */
+var FERR={
+  supermercado:{rot:"Supermercado",alvo:"lig",dica:"Solte sobre uma ligação: o estoque vira supermercado puxado por kanban",svg:'<path d="M8 3h14M8 8h14M8 13h14M22 3v10"/>'},
+  fifo:{rot:"FIFO",alvo:"lig",dica:"Solte sobre uma ligação: fluxo sequencial, primeiro a entrar, primeiro a sair",svg:'<path d="M2 3h26M2 15h26"/><text x="15" y="12" font-size="7.5" text-anchor="middle" fill="#18212d" stroke="none" font-weight="700">FIFO</text>'},
+  continuo:{rot:"Fluxo contínuo",alvo:"lig",dica:"Solte sobre uma ligação: a peça passa direto, sem estoque",svg:'<path d="M3 9h20M18 4l6 5-6 5"/>'},
+  empurrado:{rot:"Empurrar",alvo:"lig",dica:"Solte sobre uma ligação: volta a ser fluxo empurrado com estoque",svg:'<path d="M2 6h4v6H2zM10 6h4v6h-4zM18 6h3v6h-3z" fill="#18212d"/><path d="M6 6h4v6H6zM14 6h4v6h-4z"/><path d="M21 3l7 6-7 6z" fill="#18212d"/>'},
+  puxador:{rot:"Processo puxador",alvo:"no",dica:"Solte sobre o posto que recebe a programação",svg:'<path d="M21 9a6 6 0 1 1-3-5.2"/><path d="M18 1v3.5h3.5"/>'},
+  kaizen:{rot:"Kaizen",alvo:"no",dica:"Solte sobre um posto para registrar a melhoria necessária",svg:'<path d="M15 1l2 4 4-2-1 4 5 1-4 3 3 4-5-1-1 4-3-3-3 3-1-4-5 1 3-4-4-3 5-1-1-4 4 2z"/>'},
+  oxox:{rot:"Nivelamento",alvo:"livre",dica:"Nivelamento de carga (OXOX) na programação do puxador",svg:'<rect x="3" y="4" width="24" height="10"/><text x="15" y="12" font-size="7.5" text-anchor="middle" fill="#18212d" stroke="none" font-weight="700">OXOX</text>'},
+  va_ver:{rot:"Vá ver",alvo:"par",dica:"Programação \"vá ver\": arraste de uma peça até outra",svg:'<circle cx="10" cy="10" r="4"/><circle cx="20" cy="10" r="4"/><path d="M14 10h2M24 9l3-6"/>'},
+  kanban_retirada:{rot:"Kanban retirada",alvo:"par",dica:"Kanban de retirada: arraste do processo cliente até o supermercado ou processo fornecedor",svg:'<path d="M8 4h11l3 3v7H8z"/><path d="M10 14l8-10M14 14l7-9M8 11l6-7" stroke-width="1"/>'},
+  kanban_producao:{rot:"Kanban produção",alvo:"par",dica:"Kanban de produção: arraste do supermercado ou processo cliente até o processo que produz",svg:'<path d="M8 4h11l3 3v7H8z"/>'},
+  kanban_sinalizacao:{rot:"Kanban sinalização",alvo:"par",dica:"Kanban de sinalização (lotes): arraste de uma peça até outra",svg:'<path d="M7 4h16l-8 11z"/>'}
+};
+function dicaPadrao(){
+  $("hint").textContent=modo!=="editar"?"Arraste para mover a cena"
+    :ferrInfo?FERR[ferrInfo].rot+": arraste do ponto amarelo de uma peça até a outra. Esc cancela."
+    :"Arraste peças da paleta. Ponto amarelo liga uma peça a outra. Clique no balão ou dê dois cliques no posto para digitar os dados.";
+}
+function aplicarFerr(id,sx,sy){
+  var F=FERR[id],l,n;
+  if(vendo!=="futuro"){avisar("Estas ferramentas valem para o estado futuro. Clique em Estado futuro.",true);return;}
+  if(F.alvo==="par"){ferrInfo=id;dicaPadrao();avisar(F.rot+": agora arraste do ponto amarelo de uma peça até a outra.");return;}
+  if(F.alvo==="livre"){acao(function(){D.futuro.plano.nivelamento=true;});selecionar(null);montarPainel();
+    avisar(calc().puxador?"Nivelamento de carga marcado: a caixa OXOX aparece na programação do puxador.":"Nivelamento marcado. Defina o processo puxador e ligue o PCP a ele para a caixa OXOX aparecer.");return;}
+  if(F.alvo==="lig"){
+    l=ligEm(sx,sy); if(!l){avisar("Solte "+F.rot+" sobre uma ligação: o estoque ou a seta entre duas peças.",true);return;}
+    acao(function(){l.fluxo=id;});sel=null;selecionar({tipo:"lig",id:l.id});return;
+  }
+  n=noEm(sx,sy); if(!n||n.tipo!=="processo"){avisar("Solte "+F.rot+" sobre um posto de trabalho.",true);return;}
+  if(id==="puxador")acao(function(){M.nos.forEach(function(x){delete x.puxador;});n.puxador=true;});
+  else if(!n.dados.kaizen)acao(function(){n.dados.kaizen="Kaizen";});
+  sel=null;selecionar({tipo:"no",id:n.id});
+  if(id==="kaizen")avisar("Descreva o kaizen no campo Kaizen necessário, no painel ao lado.");
+}
 function montarPaleta(){
   palEl.appendChild(el("h2",{text:"Peças"}));
-  function item(tipo,modelo,rot,cor){
-    var sw=el("i"),b=el("button",{class:"pc",type:"button","data-tipo":tipo,"data-modelo":modelo||"","aria-pressed":"false",title:"Arraste para o mapa, ou clique e depois clique no chão"},[sw,rot]);
-    sw.style.background=cor;
+  function item(tipo,modelo,rot,cor,svg){
+    var sw=el(svg?"span":"i"),b=el("button",{class:"pc",type:"button","data-tipo":tipo,"data-modelo":modelo||"","aria-pressed":"false",title:"Arraste para o mapa, ou clique e depois clique no chão"},[sw,rot]);
+    if(svg)sw.innerHTML='<svg viewBox="0 0 30 18" fill="none" stroke="#18212d" stroke-width="1.5" stroke-linejoin="round">'+svg+'</svg>'; else sw.style.background=cor;
     var p=null;
     b.addEventListener("pointerdown",function(e){ if(b.disabled)return; p={x:e.clientX,y:e.clientY,mov:false}; try{b.setPointerCapture(e.pointerId);}catch(_){} });
     b.addEventListener("pointermove",function(e){
@@ -1367,12 +1448,21 @@ function montarPaleta(){
     b.addEventListener("pointerup",function(e){
       if(!p)return; var q=p;p=null;
       if(q.mov){ if(fantasma)soltarPeca(fantasma,fantasma.sx,fantasma.sy); fantasma=null; }
+      else if(tipo==="ferr"&&FERR[modelo].alvo!=="lig"&&FERR[modelo].alvo!=="no"){armado=null;marcarPaleta();aplicarFerr(modelo,0,0);}
       else { armado=armado&&armado.tipo===tipo&&armado.modelo===modelo?null:{tipo:tipo,modelo:modelo}; marcarPaleta(); }
     });
     b.addEventListener("pointercancel",function(){p=null;fantasma=null;});
-    b.addEventListener("click",function(e){ if(e.detail===0&&!b.disabled){var w=chao(W/2,H/2);armado=null;marcarPaleta();inserir({tipo:tipo,modelo:modelo},w[0],w[1],null);} });
-    palEl.appendChild(b);
+    b.addEventListener("click",function(e){ if(e.detail===0&&!b.disabled&&tipo==="ferr"){armado=null;marcarPaleta();aplicarFerr(modelo,W/2,H/2);return;}
+      if(e.detail===0&&!b.disabled){var w=chao(W/2,H/2);armado=null;marcarPaleta();inserir({tipo:tipo,modelo:modelo},w[0],w[1],null);} });
+    alvoPal.appendChild(b);return b;
   }
+  /* ferramentas do estado futuro, com os ícones do livro */
+  var ir=el("button",{class:"pc ir",id:"palIr",type:"button",text:"Montar o estado futuro"});
+  ir.addEventListener("click",function(){setEstado("futuro");});palEl.appendChild(ir);
+  palEl.appendChild(el("h3",{id:"palFutT",text:"Ferramentas do estado futuro"}));
+  var pf=el("div",{class:"pf",id:"palFut"});palEl.appendChild(pf);alvoPal=pf;
+  Object.keys(FERR).forEach(function(k){item("ferr",k,FERR[k].rot,null,FERR[k].svg).title=FERR[k].dica;});
+  alvoPal=palEl;
   palEl.appendChild(el("h3",{text:"Postos de trabalho"}));
   MODELOS.forEach(function(m){item("processo",m,CAT[m].rotulo,CAT[m].cor);});
   palEl.appendChild(el("h3",{text:"Porta a porta"}));
@@ -1381,6 +1471,7 @@ function montarPaleta(){
   item("area",null,"Área (retângulo)","#a9c3e2");
 }
 function soltarPeca(d,sx,sy){
+  if(d.tipo==="ferr"){cam();aplicarFerr(d.modelo,sx,sy);return;}
   cam();var w=chao(sx,sy),lig=d.tipo==="processo"?ligEm(sx,sy):null;
   inserir(d,w[0],w[1],lig);
 }
@@ -1579,13 +1670,14 @@ function painelLigacao(sec,l){
   sec.appendChild(el("p",{class:"nota",text:nomeNo(noPorId(M,l.origem))+" → "+nomeNo(noPorId(M,l.destino))}));
   if(saidasDe(M,l.origem).length>1)campo(sec,"Percentual da saída de "+nomeNo(noPorId(M,l.origem))+" (%)",l.percentual,{tipo:"number",min:0,max:100},function(v){l.percentual=v;});
   escolha(sec,"Tipo de fluxo",l.fluxo,Object.keys(FLUXOS).map(function(k){return [k,FLUXOS[k].rotulo];}),function(v){acao(function(){l.fluxo=v;});montarPainel();});
+  if(l.fluxo==="supermercado")campo(sec,"Peças por kanban (contêiner)",l.pecasKanban,{tipo:"number",min:0,vazio:true,dica:"opcional"},function(v){l.pecasKanban=v;});
   if(l.fluxo!=="continuo")campo(sec,l.fluxo==="fifo"?"Máximo na pista FIFO (peças)":l.fluxo==="supermercado"?"Supermercado (peças)":"Estoque (peças)",l.estoquePecas,{tipo:"number",min:0,step:1,inteiro:true},function(v){l.estoquePecas=v;});
   var lt=el("p",{class:"leit"});sec.appendChild(lt);
   leitura=function(){var x=ligPorId(M,l.id); if(!x)return; var C=calc();
     var irm=saidasDe(M,x.origem),som=0,div="";irm.forEach(function(o){som+=o.percentual;});
     if(irm.length>1)div=" Saídas de "+nomeNo(noPorId(M,x.origem))+": "+irm.map(function(o){return n1(C.pct[o.id]*100)+"% para "+nomeNo(noPorId(M,o.destino));}).join(", ")+"."+(Math.abs(som-100)>.05?" Os percentuais somam "+n1(som)+"% e foram ajustados na proporção para 100%.":"");
     lt.textContent=(x.fluxo==="continuo"?"Fluxo contínuo: a peça passa direto ao processo seguinte, sem estoque.":M.cliente.demandaDia>0?mil(x.estoquePecas)+" peças ÷ "+mil(M.cliente.demandaDia*(C.fracLig[x.id]==null?1:C.fracLig[x.id]))+" pç/dia = "+nf(C.lig[x.id].dias,1)+" dias de estoque."
-      :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.")+div;};
+      :"Dias de estoque = peças ÷ demanda diária. Informe a demanda do cliente.")+(x.fluxo==="supermercado"&&x.pecasKanban>0?" Kanbans em circulação: "+mil(Math.ceil(x.estoquePecas/x.pecasKanban))+".":"")+div;};
   botoes(sec,[["Excluir ligação",excluirSelecao,"perigo"]]);
 }
 function painelInfo(sec,f){
@@ -1744,7 +1836,7 @@ cv.addEventListener("wheel",function(e){e.preventDefault();var m=pt(e);darZoom(e
 /* ---- teclado ---- */
 document.addEventListener("keydown",function(e){
   var tg=e.target,emCampo=tg&&(/^(INPUT|TEXTAREA|SELECT)$/.test(tg.tagName));
-  if(e.key==="Escape"){ if(dlg.open)return; if(!pop.hidden){fecharPop();return;} armado=null;fantasma=null;arr=null;marcarPaleta(); if(!emCampo)selecionar(null); return; }
+  if(e.key==="Escape"){ if(dlg.open)return; if(!pop.hidden){fecharPop();return;} if(ferrInfo){ferrInfo=null;dicaPadrao();} armado=null;fantasma=null;arr=null;marcarPaleta(); if(!emCampo)selecionar(null); return; }
   if(modo!=="editar"||emCampo||dlg.open)return;
   var k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
   if(ctrl&&k==="z"&&!e.shiftKey){e.preventDefault();desfazer();}
@@ -1774,7 +1866,14 @@ function desenharEditor(C){
     ctx.beginPath();ctx.arc(rato.x,rato.y,5,0,7);ctx.fillStyle="#f2b705";ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1.6;ctx.stroke();
   }
   var f=fantasma||(armado&&rato.dentro?{tipo:armado.tipo,modelo:armado.modelo,sx:rato.x,sy:rato.y}:null);
-  if(f){
+  if(f&&f.tipo==="ferr"){
+    var Ff=FERR[f.modelo],tl=Ff.alvo==="lig"?ligEm(f.sx,f.sy):null,tn=Ff.alvo==="no"?noEm(f.sx,f.sy):null,okf=!!tl||(tn&&tn.tipo==="processo")||Ff.alvo==="livre"||Ff.alvo==="par";
+    if(tl){var gt=C.lig[tl.id],pc=[];for(i=0;i<20;i++)pc.push([gt.k.x+Math.cos(i/20*6.2832)*2.6,gt.k.y+Math.sin(i/20*6.2832)*2.6]);fpoly(pc,"rgba(23,138,90,.3)","#178a5a",2);}
+    if(tn&&tn.tipo==="processo"){var rt=retNo(tn);fret([rt[0]-.25,rt[1]-.25,rt[2]+.25,rt[3]+.25],"rgba(23,138,90,.18)","#178a5a",2);}
+    ctx.font=fontD(14,700);ctx.textAlign="center";ctx.textBaseline="middle";
+    halo(Ff.rot+(okf?"":Ff.alvo==="lig"?": solte sobre uma ligação":": solte sobre um posto"),f.sx,f.sy-16,okf?"#178a5a":"#2c4a6e");
+    ctx.beginPath();ctx.arc(f.sx,f.sy,5,0,7);ctx.fillStyle=okf?"#178a5a":"#fff";ctx.fill();ctx.strokeStyle=INK;ctx.lineWidth=1.6;ctx.stroke();
+  } else if(f){
     var w=chao(f.sx,f.sy),x=Math.round(w[0]),y=Math.round(w[1]),ehA=f.tipo==="area",pe=ehA?[-6,-5,6,5]:TIPOS[f.tipo].pe,
         lg=f.tipo==="processo"?ligEm(f.sx,f.sy):null,ok=ehA||livre(M,f.tipo,x,y),cor=lg?"#178a5a":ok?"#2c4a6e":"#d23b2a";
     if(lg){var g=C.lig[lg.id],pts=[];for(i=0;i<20;i++)pts.push([g.k.x+Math.cos(i/20*6.2832)*2.6,g.k.y+Math.sin(i/20*6.2832)*2.6]);fpoly(pts,"rgba(23,138,90,.3)","#178a5a",2);}
@@ -1813,6 +1912,7 @@ $("bRedo").addEventListener("click",refazer);
 $("bIn").addEventListener("click",function(){darZoom(1.25,W/2,H/2);});
 $("bOut").addEventListener("click",function(){darZoom(1/1.25,W/2,H/2);});
 $("bFit").addEventListener("click",enquadrar);
+$("bJan").addEventListener("click",abrirJanela);
 var selVista=$("selVista"),rGiro=$("rGiro"),rIncl=$("rIncl");
 function setVista(v,g,i){
   if(VISTAS[v]){g=VISTAS[v][0];i=VISTAS[v][1];} else v="livre";
@@ -1829,7 +1929,8 @@ D=carregar()||mapaExemplo();
 atualizarVista();
 (function(){var p=null;try{p=JSON.parse(localStorage.getItem(CHAVE+".vista"));}catch(e){} if(p&&typeof p==="object")setVista(String(p.v),num(p.g,30),num(p.i,30)); else setVista("isometrica");})();
 montarPaleta();
-setModo("editar");
+setModo(espelho?"apresentar":"editar");
+if(espelho){$("bJan").hidden=true;try{var ev=localStorage.getItem(CHAVE+".estado"); if(ev==="futuro"&&D.futuro)setEstado("futuro");}catch(e){}}
 montarPainel();
 atualizarUI();
 enquadrar();
